@@ -2,31 +2,17 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
-from harness.config import REPO_ROOT
+from harness.benchmark_io import (
+    HOLDOUT_DIR,
+    TRAINING_DIR,
+    load_bug_patch,
+    load_holdout_bugs,
+    load_training_bugs,
+)
 from harness.judge import verify_bug_state
-
-TRAINING_MANIFEST = REPO_ROOT / "benchmark" / "manifest.json"
-HOLDOUT_MANIFEST = REPO_ROOT / "benchmark" / "holdout" / "manifest.json"
-
-
-def load_manifest(path: Path) -> list[dict[str, str]]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return data["bugs"]
-
-
-def load_bug_patch(bugs_dir: Path, bug: dict[str, str]) -> str:
-    patch_path = bugs_dir / bug["patch"]
-    text = patch_path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    while lines and lines[0].startswith("#"):
-        lines.pop(0)
-    while lines and lines[0].strip() == "":
-        lines.pop(0)
-    return "\n".join(lines) + "\n"
 
 
 def validate_set(label: str, bugs_dir: Path, bugs: list[dict[str, str]]) -> list[str]:
@@ -44,21 +30,11 @@ def validate_set(label: str, bugs_dir: Path, bugs: list[dict[str, str]]) -> list
 
 
 def main() -> int:
-    training = load_manifest(TRAINING_MANIFEST)
-    holdout = load_manifest(HOLDOUT_MANIFEST)
+    training = load_training_bugs()
+    holdout = load_holdout_bugs()
 
-    failures = validate_set(
-        "training",
-        REPO_ROOT / "benchmark" / "bugs",
-        training,
-    )
-    failures.extend(
-        validate_set(
-            "holdout",
-            REPO_ROOT / "benchmark" / "holdout",
-            holdout,
-        )
-    )
+    failures = validate_set("training", TRAINING_DIR, training)
+    failures.extend(validate_set("holdout", HOLDOUT_DIR, holdout))
 
     if failures:
         print(f"\nCalibration error: bugs still pass gate: {', '.join(failures)}")

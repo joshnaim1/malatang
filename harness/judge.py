@@ -28,6 +28,17 @@ def _summarize_gate(gate: GateResult) -> str:
     return f"tests failed: {hint[:200]}"
 
 
+def _detect_regression(gate: GateResult) -> bool:
+    """Real, deterministic regression signal.
+
+    A regression means the fix compiles but leaves the suite red — the change
+    builds yet behaviour is still wrong. A build failure is a build break, not a
+    regression, and an accepted fix (build + tests green) has no regression.
+    This never overrides the binary gate; it is a diagnostic flag only.
+    """
+    return gate.build_passed and not gate.tests_passed
+
+
 def verify_mutation(
     mutation_payload: dict[str, Any],
     bug_patch_text: str,
@@ -54,7 +65,7 @@ def verify_mutation(
         "accepted": accepted,
         "build_passed": gate.build_passed,
         "tests_passed": gate.tests_passed,
-        "regression_detected": False,
+        "regression_detected": _detect_regression(gate),
         "wall_time_s": round(gate.wall_time_s, 2),
         "notes": _summarize_gate(gate),
     }

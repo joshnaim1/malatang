@@ -37,7 +37,7 @@ Pick next bug patch  (benchmark/bugs/ — 25 training bugs)
           │               │
           └───────┬───────┘
                   ▼
-     return verdict JSON  (+ trajectory log — TODO)
+     return verdict JSON  (+ trajectory log → trajectories/iterN/)
                   │
                   ▼
      more attempts (<8) or more bugs?
@@ -86,15 +86,21 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 | `benchmark/holdout/manifest.json` | Hold-out bug registry |
 | `benchmark/fixes/syntax-001.patch` | Canned true-positive fix for pipeline smoke test |
 | `contracts/` | Frozen mutation + verdict schemas and examples |
-| `harness/sandbox.py` | Tempdir clone, `git apply`, build + test gate |
-| `harness/judge.py` | Bug patch → mutation diff → verdict JSON |
+| `harness/sandbox.py` | Tempdir clone, node_modules junction, `git apply`, build + test gate |
+| `harness/judge.py` | Bug patch → mutation diff → verdict JSON (+ regression signal) |
 | `harness/fake_creator.py` | Mock Creator stub (replace with partner's real Creator) |
-| `harness/runner.py` | Orchestrates iteration loop over **training** bugs only |
+| `harness/runner.py` | Multi-iteration loop over **training** bugs; logs trajectories + metrics |
+| `harness/holdout_eval.py` | One-shot eval over the **hold-out** set (separate from training) |
+| `harness/trajectory.py` | Trajectory store — writes every attempt to `trajectories/` |
+| `harness/benchmark_io.py` | Shared manifest/patch loaders (training + hold-out) |
 | `harness/chart.py` | Matplotlib pass-rate chart from `results/metrics.jsonl` |
 | `harness/validate_bugs.py` | Confirms all 25 + 5 bugs break build or tests |
 | `harness/generate_patches.py` | Regenerates patches from git diffs (dev helper) |
 | `harness/config.py` | Env-var loader; fails loudly on missing vars |
+| `trajectories/iterN/` | Per-attempt JSON records for the reflection loop (gitignored) |
+| `trajectories/holdout/` | Hold-out attempt records |
 | `results/metrics.jsonl` | Per-iteration metrics (commit as evidence) |
+| `results/holdout_metrics.jsonl` | Hold-out eval results |
 | `results/pass_rate.png` | Chart (commit as evidence) |
 | `.env.example` | Required env var names (never commit `.env`) |
 
@@ -143,33 +149,46 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 | `holdout-004` | wrong-api |
 | `holdout-005` | async |
 
-### 6. Runner v0 + metrics
+### 6. Runner + metrics
 - [x] Fake Creator stub (`harness/fake_creator.py`) — one true positive on `syntax-001`
-- [x] Runner loop: fake Creator → real Judge → per-bug attempts
+- [x] Runner loop: fake Creator → real Judge → per-bug attempts (early accept)
+- [x] **Multi-iteration support** — `--iterations N`, `--fresh`, `--start-iteration`
 - [x] Writes `results/metrics.jsonl` + `results/pass_rate.png`
-- [ ] Re-run mock iteration at 25 bugs for updated baseline metrics (optional)
+- [x] Re-run at 25 bugs — baseline metrics + chart regenerated (stub: 1/25)
+
+### 7. Trajectory store
+- [x] `harness/trajectory.py` — every attempt written to `trajectories/iterN/{bug}_attempt{n}.json`
+- [x] Records full mutation payload, verdict, bug class, timestamp
+- [x] Per-iteration `summary.json`; hold-out records under `trajectories/holdout/`
+- [x] Feeds partner's reflection loop (read-only from their side)
+
+### 8. Hold-out eval
+- [x] `harness/holdout_eval.py` — one-shot over `benchmark/holdout/`, **never** in training loop
+- [x] Writes `results/holdout_metrics.jsonl` + `trajectories/holdout/`
+
+### 9. Sandbox performance
+- [x] `node_modules` **junctioned** (Windows) / symlinked (POSIX) instead of copied — no per-attempt copy
+- [x] build/test invoked via direct `node` binaries, skipping the `npm` wrapper startup
+- [x] ~10s/bug locally (down from ~12s, and no disk churn from 800 node_modules copies at full scale)
+
+### 10. Regression signal
+- [x] `regression_detected` is now real: `build_passed AND NOT tests_passed` (compiles but behaviour wrong)
+- [x] Never overrides the binary gate — diagnostic flag only (verified: `null-002` → `true`, accepted fixes → `false`)
 
 ---
 
 ## Still to do (your backlog)
 
-### Tuesday Jul 7 — integration + calibration
+### Blocked on real Creator (integration)
 
 - [ ] **Calibrate difficulty with real Creator** — iteration-0 pass rate **20–45%**
-- [ ] **Trajectory store** — log every attempt to `trajectories/iterN/`
 - [ ] **Swap fake Creator for real Creator** — same contract shape, no field renames
-- [ ] **Hold-out eval script** — one-shot runner over `benchmark/holdout/`
-
-### Wednesday–Thursday
-
-- [ ] **Runner: multi-iteration support** (iterations 0→3, chart rises)
-- [ ] **Sandbox performance** — optimize before 25×8×4 runs (~2 min/sandbox today)
-- [ ] **`regression_detected`** — optional real regression signal vs clean tree
+- [ ] **Real multi-iteration run** — line only rises with a self-improving Creator (harness never fakes it)
 
 ### Friday Jul 10 — demo polish
 
-- [ ] **Live heal opener** (SOW §3 Beat 1)
-- [ ] **Commit latest evidence artifacts** (`metrics.jsonl` + `pass_rate.png`)
+- [ ] **Live heal opener** (SOW §3 Beat 1) — Judge verify + redeploy half
+- [ ] **Commit latest evidence artifacts** (`metrics.jsonl` + `pass_rate.png`) after calibration
 - [x] **Root README** — [`README.md`](README.md) at repo root
 
 ### Integration checklist (when partner is ready)
@@ -193,12 +212,16 @@ npm run build && npm test
 $env:SANDBOX_TIMEOUT_S="120"
 $env:BENCHMARK_ATTEMPTS_PER_BUG="8"
 
-python -m harness.validate_bugs   # ~6 min — all 30 bugs must BREAK
-python -m harness.runner          # fake Creator → real Judge
-python -m harness.chart
+python -m harness.validate_bugs                    # ~6 min — all 30 bugs must BREAK
+python -m harness.runner --fresh --iterations 1    # fake Creator → real Judge → metrics + chart
+python -m harness.runner --iterations 3            # multi-iteration (plumbing; line rises only with real Creator)
+python -m harness.holdout_eval                     # one-shot hold-out eval (run once, at the end)
+python -m harness.chart                            # regenerate chart from metrics.jsonl
 
 python harness/generate_patches.py   # dev: regenerate patches after clean-source edits
 ```
+
+Runner flags: `--iterations N`, `--start-iteration K`, `--model-checkpoint LABEL`, `--fresh` (truncate metrics), `--no-chart`.
 
 ---
 
@@ -229,7 +252,7 @@ Each iteration appends one JSON line to `results/metrics.jsonl`:
 | Day | Your goal |
 |---|---|
 | **Mon Jul 6** | Repo + contracts + sandbox + **25 + 5 bugs seeded** ✅ |
-| **Tue Jul 7** | E2E with real Creator; calibrate 20–45%; trajectory store |
+| **Tue Jul 7** | Harness ready ✅ (trajectory store, multi-iteration runner, hold-out eval, perf, regression) — E2E + calibrate 20–45% once real Creator lands |
 | **Wed Jul 8** | Partner playbook loop; Runner re-runs same frozen bugs |
 | **Thu Jul 9** | Hold-out eval once |
 | **Fri Jul 10** | Freeze code; demo rehearsal; evidence committed |
@@ -241,9 +264,9 @@ Each iteration appends one JSON line to `results/metrics.jsonl`:
 
 1. **25 + 5 hold-out** bugs seeded and validated ✅
 2. **Real Creator** plugged in; iteration-0 pass rate **20–45%**
-3. **Runner** runs full iterations unattended; metrics + chart committed
-4. **Trajectories** logged per attempt for partner's reflection loop
-5. **Verdict gate** stays binary — build + tests only
+3. **Runner** runs full iterations unattended; metrics + chart committed — plumbing ✅ (needs real Creator for the curve)
+4. **Trajectories** logged per attempt for partner's reflection loop ✅
+5. **Verdict gate** stays binary — build + tests only ✅
 6. **Live heal** demo path works for Beat 1
 7. **Hold-out eval** run once to show generalization
 

@@ -35,6 +35,55 @@ def _npm_command() -> str:
     return "npm.cmd" if os.name == "nt" else "npm"
 
 
+def _node_bin(workdir: Path, package: str, rel: str) -> Path | None:
+    """Resolve a package's CLI entry inside the sandbox node_modules."""
+    candidate = workdir / "node_modules" / package / rel
+    return candidate if candidate.exists() else None
+
+
+def _build_command(workdir: Path) -> list[str]:
+    """`npm run build` semantics, but skip the npm wrapper's process startup."""
+    vite = _node_bin(workdir, "vite", "bin/vite.js")
+    if vite is not None:
+        return ["node", str(vite), "build"]
+    return [_npm_command(), "run", "build"]
+
+
+def _test_command(workdir: Path) -> list[str]:
+    """`npm test` semantics, invoking vitest directly to save startup time."""
+    vitest = _node_bin(workdir, "vitest", "vitest.mjs")
+    if vitest is not None:
+        return ["node", str(vitest), "run"]
+    return [_npm_command(), "run", "test"]
+
+
+def _link_dependencies(source: Path, target: Path) -> None:
+    """Link node_modules into the sandbox instead of copying it.
+
+    Copying node_modules per attempt dominates sandbox wall time. A junction
+    (Windows) or symlink (POSIX) is transparent to vite/vitest and avoids the
+    copy. Falls back to a full copy if linking is unavailable.
+    """
+    if not source.is_dir():
+        return
+    try:
+        if os.name == "nt":
+            result = subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(target), str(source)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                return
+        else:
+            os.symlink(source, target, target_is_directory=True)
+            return
+    except OSError:
+        pass
+    shutil.copytree(source, target)
+
+
 def clone_repo_to_temp(repo_root: Path | None = None) -> Path:
     root = repo_root or REPO_ROOT
     temp_dir = Path(tempfile.mkdtemp(prefix="malatang-sandbox-"))
@@ -49,14 +98,25 @@ def clone_repo_to_temp(repo_root: Path | None = None) -> Path:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
 
-    node_modules = root / "node_modules"
-    if node_modules.is_dir():
-        shutil.copytree(node_modules, temp_dir / "node_modules")
+    _link_dependencies(root / "node_modules", temp_dir / "node_modules")
 
     return temp_dir
 
 
 def cleanup_sandbox(workdir: Path) -> None:
+    # Remove a linked node_modules first so rmtree never recurses into the real
+    # dependency tree (a junction/symlink points back at the repo copy).
+    node_modules = workdir / "node_modules"
+    try:
+        if node_modules.is_symlink():
+            node_modules.unlink()
+        elif os.name == "nt" and node_modules.is_dir():
+            try:
+                os.rmdir(node_modules)  # removes a junction, not its target
+            except OSError:
+                pass  # a real copied dir; rmtree will handle it
+    except OSError:
+        pass
     shutil.rmtree(workdir, ignore_errors=True)
 
 
@@ -143,18 +203,17 @@ def ensure_dependencies(workdir: Path, timeout_s: int) -> None:
 
 def run_build_and_tests(workdir: Path, timeout_s: int | None = None) -> GateResult:
     timeout = timeout_s if timeout_s is not None else sandbox_timeout_s()
-    npm = _npm_command()
     started = time.perf_counter()
 
     ensure_dependencies(workdir, timeout)
 
-    build = _run([npm, "run", "build"], workdir, timeout)
+    build = _run(_build_command(workdir), workdir, timeout)
     build_passed = build.returncode == 0
 
     tests_passed = False
     test_output = ""
     if build_passed:
-        tests = _run([npm, "run", "test"], workdir, timeout)
+        tests = _run(_test_command(workdir), workdir, timeout)
         tests_passed = tests.returncode == 0
         test_output = (tests.stdout or "") + (tests.stderr or "")
     else:

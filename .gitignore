@@ -9,4 +9,6 @@ results/*
 !results/.gitkeep
 !results/metrics.jsonl
 !results/pass_rate.png
+trajectories/*
+!trajectories/.gitkeep
 .DS_Store
