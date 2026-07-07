@@ -1,0 +1,14 @@
+# Missing closing brace on currency.formatMoney export
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..beb5387 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -10,7 +10,7 @@ export function formatMoney(cents) {
+     return usdFormatter.format(0);
+   }
+   return usdFormatter.format(cents / 100);
+-}
++
+ 
+ /** Compact display without currency symbol (digits only). */
+ export function formatMoneyDigits(cents) {

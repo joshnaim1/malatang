@@ -1,0 +1,14 @@
+# firstSpiceLabel missing await on fetchSpiceLabel
+diff --git a/lib/asyncCart.js b/lib/asyncCart.js
+index 42475cc..7a3cf8a 100644
+--- a/lib/asyncCart.js
++++ b/lib/asyncCart.js
+@@ -24,7 +24,7 @@ export async function loadCartTotal(lines) {
+ export async function validateCartSpices(lines) {
+   const checks = lines.map((line) => {
+     const key = line.spiceLevel?.label?.toLowerCase();
+-    return fetchSpiceLabel(key);
++    return key;
+   });
+   const results = await Promise.all(checks);
+   return results.every((label) => label !== "Unknown");

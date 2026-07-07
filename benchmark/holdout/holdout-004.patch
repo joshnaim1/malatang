@@ -1,0 +1,14 @@
+# formatMoney uses invalid currency option in NumberFormat
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..6e70820 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -1,7 +1,7 @@
+ /** USD formatting via Intl.NumberFormat (single library â€” learnable misuse pattern). */
+ const usdFormatter = new Intl.NumberFormat("en-US", {
+   style: "currency",
+-  currency: "USD",
++  currency: "USDD",
+ });
+ 
+ /** Format integer cents as a USD string. */
