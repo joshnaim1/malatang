@@ -1,0 +1,14 @@
+# Missing closing parenthesis on formatCents JSX call
+diff --git a/src/App.jsx b/src/App.jsx
+index 9eee5a4..3f4b607 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -20,7 +20,7 @@ export default function App() {
+         {visible.map((line) => (
+           <li key={line.name}>
+             <span>{formatLineLabel(line.name, line.spiceLevel)}</span>
+-            <span>{formatCents(line.total)}</span>
++            <span>{formatCents(line.total}</span>
+           </li>
+         ))}
+       </ul>

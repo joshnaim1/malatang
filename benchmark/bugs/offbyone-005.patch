@@ -1,6 +1,6 @@
-# pageSlice includes one extra item beyond page size
+# pageSlice end index one item short
 diff --git a/lib/stats.js b/lib/stats.js
-index f739fce..0aea157 100644
+index f739fce..905c7fd 100644
 --- a/lib/stats.js
 +++ b/lib/stats.js
 @@ -17,7 +17,7 @@ export function average(values) {
@@ -8,7 +8,7 @@ index f739fce..0aea157 100644
  export function pageSlice(items, page, pageSize) {
    const start = page * pageSize;
 -  const end = start + pageSize;
-+  const end = start + pageSize + 1;
++  const end = start + pageSize - 1;
    return items.slice(start, end);
  }
  

@@ -1,0 +1,17 @@
+# formatCents drops null guard
+diff --git a/lib/format.js b/lib/format.js
+index 190e463..2b8baf4 100644
+--- a/lib/format.js
++++ b/lib/format.js
+@@ -1,10 +1,7 @@
+ /** Format cents as USD currency string. */
+ export function formatCents(cents) {
+-  if (cents == null) {
+-    return "$0.00";
+-  }
+   const dollars = cents / 100;
+-  return `$${dollars.toFixed(2)}`;
++  return `$${cents.toFixed(2)}`;
+ }
+ 
+ /** Format a cart line label with optional spice note. */

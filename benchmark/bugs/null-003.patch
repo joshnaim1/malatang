@@ -1,9 +1,9 @@
 # sumLineTotals adds undefined tax field producing NaN
 diff --git a/lib/format.js b/lib/format.js
-index 7a4b4a0..ff992b0 100644
+index 190e463..5ce60e5 100644
 --- a/lib/format.js
 +++ b/lib/format.js
-@@ -12,5 +12,5 @@ export function formatLineLabel(name, spiceLevel) {
+@@ -15,5 +15,5 @@ export function formatLineLabel(name, spiceLevel) {
  
  /** Sum line totals; skips lines without a total field. */
  export function sumLineTotals(lines) {

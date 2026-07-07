@@ -1,0 +1,14 @@
+# validateCartSpices missing await on Promise.all
+diff --git a/lib/asyncCart.js b/lib/asyncCart.js
+index 42475cc..a095787 100644
+--- a/lib/asyncCart.js
++++ b/lib/asyncCart.js
+@@ -26,7 +26,7 @@ export async function validateCartSpices(lines) {
+     const key = line.spiceLevel?.label?.toLowerCase();
+     return fetchSpiceLabel(key);
+   });
+-  const results = await Promise.all(checks);
++  const results = Promise.all(checks);
+   return results.every((label) => label !== "Unknown");
+ }
+ 

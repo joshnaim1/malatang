@@ -104,8 +104,8 @@ TRAINING_BUGS: dict[str, list[Edit]] = {
     "null-004": [
         (
             REPO / "lib/format.js",
-            "  if (cents == null) {\n    return \"$0.00\";\n  }\n",
-            "",
+            "  if (cents == null) {\n    return \"$0.00\";\n  }\n  const dollars = cents / 100;\n  return `$${dollars.toFixed(2)}`;",
+            "  const dollars = cents / 100;\n  return `$${cents.toFixed(2)}`;",
         ),
     ],
     "null-005": [
@@ -198,8 +198,8 @@ HOLDOUT_BUGS: dict[str, list[Edit]] = {
     "holdout-003": [
         (
             REPO / "lib/currency.js",
-            "  if (cents == null) {\n    return usdFormatter.format(0);\n  }\n",
-            "",
+            "  if (cents == null) {\n    return usdFormatter.format(0);\n  }\n  return usdFormatter.format(cents / 100);",
+            "  return usdFormatter.format(cents);",
         ),
     ],
     "holdout-004": [
@@ -232,17 +232,19 @@ def _git(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def write_patch(path: Path, edits: list[Edit], description: str = "") -> None:
+    edited_paths: list[str] = []
     for file_path, old, new in edits:
         text = file_path.read_text(encoding="utf-8")
         if old not in text:
             raise ValueError(f"{path.name}: snippet not found in {file_path}")
         file_path.write_text(text.replace(old, new, 1), encoding="utf-8")
+        edited_paths.append(str(file_path.relative_to(REPO)).replace("\\", "/"))
 
-    diff = _git("diff")
+    diff = _git("diff", "--", *edited_paths)
     if diff.returncode != 0:
         raise RuntimeError(diff.stderr or "git diff failed")
 
-    restore = _git("checkout", "--", ".")
+    restore = _git("checkout", "--", *edited_paths)
     if restore.returncode != 0:
         raise RuntimeError(restore.stderr or "git checkout failed")
 

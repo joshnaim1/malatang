@@ -1,14 +1,15 @@
-# average returns 0 instead of null for empty input
+# average drops null input guard
 diff --git a/lib/stats.js b/lib/stats.js
-index f739fce..efd821e 100644
+index f739fce..db63eea 100644
 --- a/lib/stats.js
 +++ b/lib/stats.js
-@@ -6,7 +6,7 @@ export function sum(values) {
+@@ -5,9 +5,6 @@ export function sum(values) {
+ 
  /** Arithmetic mean; returns null for empty input. */
  export function average(values) {
-   if (values == null) {
+-  if (values == null) {
 -    return null;
-+    return 0;
-   }
+-  }
    if (values.length === 0) {
      return null;
+   }

@@ -1,0 +1,14 @@
+# loadCartTotal missing await on Promise.all
+diff --git a/lib/asyncCart.js b/lib/asyncCart.js
+index 42475cc..a360002 100644
+--- a/lib/asyncCart.js
++++ b/lib/asyncCart.js
+@@ -14,7 +14,7 @@ export async function fetchSpiceLabel(spiceId) {
+ 
+ /** Sum line totals asynchronously. */
+ export async function loadCartTotal(lines) {
+-  const totals = await Promise.all(
++  const totals = Promise.all(
+     lines.map(async (line) => line.total),
+   );
+   return totals.reduce((acc, value) => acc + value, 0);

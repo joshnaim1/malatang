@@ -1,0 +1,16 @@
+# currencySymbolFor uses format instead of formatToParts
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..57b9c66 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -19,9 +19,7 @@ export function formatMoneyDigits(cents) {
+ 
+ /** Extract currency symbol from a numeric dollar amount. */
+ export function currencySymbolFor(amount) {
+-  const parts = usdFormatter.formatToParts(amount);
+-  const currencyPart = parts.find((part) => part.type === "currency");
+-  return currencyPart?.value ?? "";
++  return usdFormatter.format(amount);
+ }
+ 
+ /** Return configured ISO currency code from the formatter. */

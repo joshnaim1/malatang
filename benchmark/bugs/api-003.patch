@@ -1,0 +1,14 @@
+# configuredCurrencyCode reads resolvedOptions style not currency
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..2dcbf4f 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -26,7 +26,7 @@ export function currencySymbolFor(amount) {
+ 
+ /** Return configured ISO currency code from the formatter. */
+ export function configuredCurrencyCode() {
+-  return usdFormatter.resolvedOptions().currency;
++  return usdFormatter.resolvedOptions().style;
+ }
+ 
+ /** Parse a whole-dollar display string into cents. */

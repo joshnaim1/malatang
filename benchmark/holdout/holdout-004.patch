@@ -4,7 +4,7 @@ index d0612d4..6e70820 100644
 --- a/lib/currency.js
 +++ b/lib/currency.js
 @@ -1,7 +1,7 @@
- /** USD formatting via Intl.NumberFormat (single library â€” learnable misuse pattern). */
+ /** USD formatting via Intl.NumberFormat (single library — learnable misuse pattern). */
  const usdFormatter = new Intl.NumberFormat("en-US", {
    style: "currency",
 -  currency: "USD",
