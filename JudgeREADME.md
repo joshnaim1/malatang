@@ -12,7 +12,7 @@ This doc tracks what is done on the Judge/harness side, what you still owe befor
 Benchmark Runner: iteration N
         │
         ▼
-Pick next bug patch  (benchmark/bugs/)
+Pick next bug patch  (benchmark/bugs/ — 25 training bugs)
         │
         ▼
 ┌───────────────────────────────┐
@@ -48,6 +48,9 @@ Pick next bug patch  (benchmark/bugs/)
                               │
                               ▼
               trajectories → partner's reflection loop
+
+Hold-out bugs (benchmark/holdout/ — 5 bugs) are NEVER run in the training loop.
+Use them once at the end for generalization eval (SOW §6).
 ```
 
 **Calibration rule (SOW §6):** iteration-0 pass rate with the **real** Creator must land at **20–45%**. If baseline is >60%, **harden bugs** — never loosen the test gate.
@@ -75,17 +78,21 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 | Path | Purpose |
 |---|---|
 | `src/`, `lib/`, `index.html`, `vite.config.js` | Demo app (Vite + React + vitest) |
-| `benchmark/bugs/*.patch` | Seeded bugs (one patch + `#` description per file) |
-| `benchmark/manifest.json` | Bug registry (id, class, patch filename, description) |
+| `lib/currency.js` | Intl.NumberFormat helpers (wrong-API bug class) |
+| `lib/asyncCart.js` | Async cart helpers (async bug class) |
+| `benchmark/bugs/*.patch` | **25 training bugs** (one patch + `#` description each) |
+| `benchmark/holdout/*.patch` | **5 hold-out bugs** (never in training loop) |
+| `benchmark/manifest.json` | Training bug registry |
+| `benchmark/holdout/manifest.json` | Hold-out bug registry |
 | `benchmark/fixes/syntax-001.patch` | Canned true-positive fix for pipeline smoke test |
 | `contracts/` | Frozen mutation + verdict schemas and examples |
 | `harness/sandbox.py` | Tempdir clone, `git apply`, build + test gate |
 | `harness/judge.py` | Bug patch → mutation diff → verdict JSON |
 | `harness/fake_creator.py` | Mock Creator stub (replace with partner's real Creator) |
-| `harness/runner.py` | Orchestrates iteration loop, writes metrics |
+| `harness/runner.py` | Orchestrates iteration loop over **training** bugs only |
 | `harness/chart.py` | Matplotlib pass-rate chart from `results/metrics.jsonl` |
-| `harness/validate_bugs.py` | Confirms every seeded bug breaks build or tests |
-| `harness/generate_patches.py` | Regenerates patch files from git diffs (dev helper) |
+| `harness/validate_bugs.py` | Confirms all 25 + 5 bugs break build or tests |
+| `harness/generate_patches.py` | Regenerates patches from git diffs (dev helper) |
 | `harness/config.py` | Env-var loader; fails loudly on missing vars |
 | `results/metrics.jsonl` | Per-iteration metrics (commit as evidence) |
 | `results/pass_rate.png` | Chart (commit as evidence) |
@@ -93,19 +100,17 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 
 ---
 
-## Completed (Day 1 — Jul 6)
+## Completed
 
 ### 1. Demo app
 - [x] Vite + React app at repo root (`src/App.jsx`)
-- [x] Small Node util modules (`lib/stats.js`, `lib/format.js`)
-- [x] Vitest suite (`lib/*.test.js`) — 9 tests, all green on clean tree
+- [x] Node util modules: `lib/stats.js`, `lib/format.js`, `lib/currency.js`, `lib/asyncCart.js`
+- [x] Vitest suite — **23 tests**, all green on clean tree
 - [x] Verification command matches SOW: `npm run build && npm test`
 
 ### 2. Frozen contracts
-- [x] `contracts/mutation.schema.json`
-- [x] `contracts/verdict.schema.json`
-- [x] `contracts/example_mutation.json`
-- [x] `contracts/example_verdict.json`
+- [x] `contracts/mutation.schema.json` + `contracts/verdict.schema.json`
+- [x] `contracts/example_mutation.json` + `contracts/example_verdict.json`
 - [x] `.env.example` with SOW §10 vars
 
 ### 3. Sandbox + Judge
@@ -115,107 +120,84 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 - [x] Verdict JSON matches contract fields exactly
 - [x] Windows-safe subprocess encoding
 
-### 4. Bug seeding (partial)
-- [x] **10 / 25** bugs seeded in `benchmark/bugs/`:
+### 4. Bug seeding — training set (25/25)
+- [x] All SOW §6 classes covered:
 
-| Class | Target (SOW §6) | Done |
+| Class | Target | Seeded |
 |---|---|---|
-| Syntax | 6 | 4 (`syntax-001` … `syntax-004`) |
-| Off-by-one | 5 | 3 (`offbyone-001` … `offbyone-003`) |
-| Null/undefined | 5 | 3 (`null-001` … `null-003`) |
-| Wrong API usage | 5 | 0 |
-| Async mistakes | 4 | 0 |
+| Syntax | 6 | 6 (`syntax-001` … `syntax-006`) |
+| Off-by-one | 5 | 5 (`offbyone-001` … `offbyone-005`) |
+| Null/undefined | 5 | 5 (`null-001` … `null-005`) |
+| Wrong API (Intl.NumberFormat) | 5 | 5 (`api-001` … `api-005`) |
+| Async mistakes | 4 | 4 (`async-001` … `async-004`) |
 
-- [x] `python -m harness.validate_bugs` — all 10 bugs confirmed to break build or tests
+### 5. Hold-out set (5/5)
+- [x] `benchmark/holdout/` — 5 bugs, excluded from `harness/runner.py`
+- [x] Validated via `python -m harness.validate_bugs` (training + hold-out)
 
-### 5. Runner v0 + metrics
-- [x] Fake Creator stub (`harness/fake_creator.py`)
-  - Sends `example_mutation.json` shape for every bug
-  - One true positive: `syntax-001` uses real canned fix in `benchmark/fixes/`
+| ID | Class |
+|---|---|
+| `holdout-001` | syntax |
+| `holdout-002` | off-by-one |
+| `holdout-003` | null-handling |
+| `holdout-004` | wrong-api |
+| `holdout-005` | async |
+
+### 6. Runner v0 + metrics
+- [x] Fake Creator stub (`harness/fake_creator.py`) — one true positive on `syntax-001`
 - [x] Runner loop: fake Creator → real Judge → per-bug attempts
-- [x] Writes `results/metrics.jsonl` (SOW Runner metrics shape)
-- [x] Generates `results/pass_rate.png` via matplotlib
-- [x] Mock smoke run: **1 / 10 passed (10%)** with stub Creator (expected)
+- [x] Writes `results/metrics.jsonl` + `results/pass_rate.png`
+- [ ] Re-run mock iteration at 25 bugs for updated baseline metrics (optional)
 
 ---
 
 ## Still to do (your backlog)
 
-### Tuesday Jul 7 — must ship (SOW §14 kill criteria)
+### Tuesday Jul 7 — integration + calibration
 
-- [ ] **Seed remaining 15 benchmark bugs**
-  - 2 more syntax, 2 off-by-one, 2 null, 5 wrong-API, 4 async
-  - Keep one-line `#` description on each patch; update `benchmark/manifest.json`
-- [ ] **Seed 5 hold-out bugs** (SOW §6) — never shown during iterations; used once at end
-  - Suggest `benchmark/holdout/` separate from `benchmark/bugs/` so Runner never picks them in the training loop
-- [ ] **Calibrate difficulty with real Creator**
-  - Run iteration 0 with partner's Creator (not fake stub)
-  - Target pass rate: **20–45%**
-  - Too easy (>60%)? Make bugs harder. Too hard (<20%)? Review bug clarity, not test rules.
-- [ ] **Trajectory store** (SOW §7 Level 1 step 2)
-  - Log every attempt to `trajectories/iterN/` (bug id, mutation JSON, verdict JSON, wall time)
-  - Partner's reflection loop reads failures + successes from here
-  - *Not built yet — Runner only writes aggregate metrics today*
-- [ ] **Swap fake Creator for real Creator**
-  - Replace `harness/fake_creator.py` calls with partner's mutation producer
-  - Keep contract shape identical; no field renames
+- [ ] **Calibrate difficulty with real Creator** — iteration-0 pass rate **20–45%**
+- [ ] **Trajectory store** — log every attempt to `trajectories/iterN/`
+- [ ] **Swap fake Creator for real Creator** — same contract shape, no field renames
+- [ ] **Hold-out eval script** — one-shot runner over `benchmark/holdout/`
 
 ### Wednesday–Thursday
 
-- [ ] **Runner: multi-iteration support**
-  - Loop iterations 0→3 (or 0→4), append one line per iteration to `metrics.jsonl`
-  - Chart should show the rising line judges expect
-- [ ] **Performance**
-  - Each sandbox run copies `node_modules` (~2 min for 10 bugs at 1 attempt)
-  - Consider shared dependency cache or junction/hardlink strategy before 25×8×4 runs
-- [ ] **`regression_detected`**
-  - Field exists in verdict contract but is always `false` today
-  - Optional: run clean-tree tests in parallel and compare if you want real regression signal
+- [ ] **Runner: multi-iteration support** (iterations 0→3, chart rises)
+- [ ] **Sandbox performance** — optimize before 25×8×4 runs (~2 min/sandbox today)
+- [ ] **`regression_detected`** — optional real regression signal vs clean tree
 
 ### Friday Jul 10 — demo polish
 
-- [ ] **Live heal opener** (SOW §3 Beat 1) — you own the Judge verify + redeploy half of the theater
-  - Observer/Creator injects syntax error → your sandbox verifies fix → page back up
-- [ ] **Commit evidence artifacts**
-  - `results/metrics.jsonl` + `results/pass_rate.png` on main branch
-- [ ] **Root README** (shared) — quickstart, architecture diagram, SOW §2 definition up top
+- [ ] **Live heal opener** (SOW §3 Beat 1)
+- [ ] **Commit latest evidence artifacts** (`metrics.jsonl` + `pass_rate.png`)
+- [x] **Root README** — [`README.md`](README.md) at repo root
 
 ### Integration checklist (when partner is ready)
 
-- [ ] Partner's Creator emits mutation JSON validated against `contracts/mutation.schema.json`
-- [ ] Your Judge returns verdict JSON validated against `contracts/verdict.schema.json`
-- [ ] End-to-end: one bug fixed through real Creator + real Judge (SOW §13 Day-1 deliverable for both sides)
-- [ ] Confirm Fireworks judge *commentary* (optional LLM layer) never overrides test gate — commentary is nice-to-have per SOW §12
+- [ ] Partner's Creator validates against `contracts/mutation.schema.json`
+- [ ] Judge verdict validates against `contracts/verdict.schema.json`
+- [ ] End-to-end: real Creator + real Judge on one bug
+- [ ] Fireworks commentary never overrides test gate
 
 ---
 
 ## How to run (local)
 
 ```powershell
-# 1. Setup
 copy .env.example .env
-# Required for harness (fail loudly if missing):
-#   SANDBOX_TIMEOUT_S=120
-#   BENCHMARK_ATTEMPTS_PER_BUG=8
-
 npm install
 pip install -r requirements.txt
 
-# 2. Confirm clean app is green
-npm run build
-npm test
+npm run build && npm test
 
-# 3. Confirm seeded bugs break the gate
 $env:SANDBOX_TIMEOUT_S="120"
-python -m harness.validate_bugs
+$env:BENCHMARK_ATTEMPTS_PER_BUG="8"
 
-# 4. Run mock iteration (fake Creator → real Judge)
-$env:SANDBOX_TIMEOUT_S="120"
-$env:BENCHMARK_ATTEMPTS_PER_BUG="8"   # use 1 for quick stub smoke
-python -m harness.runner
-
-# 5. Regenerate chart from existing metrics
+python -m harness.validate_bugs   # ~6 min — all 30 bugs must BREAK
+python -m harness.runner          # fake Creator → real Judge
 python -m harness.chart
+
+python harness/generate_patches.py   # dev: regenerate patches after clean-source edits
 ```
 
 ---
@@ -238,45 +220,31 @@ Each iteration appends one JSON line to `results/metrics.jsonl`:
 }
 ```
 
-Today `bugs_total` is **10** until remaining bugs are seeded. `gpu_hours_consumed` is `0.0` on your side until partner wires GPU logging.
+`bugs_total` is **25** (training set only). Hold-out bugs are evaluated separately.
 
 ---
 
-## SOW timeline reminders (your milestones)
+## SOW timeline reminders
 
 | Day | Your goal |
 |---|---|
-| **Mon Jul 6** | Repo + contracts + sandbox green via canned Creator stub ✅ (partial: 10/25 bugs) |
-| **Tue Jul 7** | Full 25-bug benchmark E2E at iteration 0; calibrate 20–45% baseline; trajectory store |
-| **Wed Jul 8** | Playbook loop live on partner side; your Runner re-runs same frozen bugs each iteration |
-| **Thu Jul 9** | Hold-out eval run once; support Level 2 go/no-go (not your code) |
-| **Fri Jul 10** | Freeze code; demo rehearsal; metrics + chart committed |
-| **Sat Jul 11** | Submit — nothing new ships |
-
-**Kill criteria (Tue):** if E2E isn't green by end of day, cut to 3 bug classes and 15 bugs (SOW §14).
-
----
-
-## Open decisions / flags
-
-| Item | Status |
-|---|---|
-| SOW filename | `SOW.md` and `overall project sow.md` both exist — pick one canonical name for the team |
-| JS-only vs JS+Python benchmark | SOW §17 defaults JS-only unless you object by Tuesday — current app is JS-only |
-| Fake Creator attempt waste | Stub resends the same bad diff on attempts 2–8; harmless for mock, real Creator fixes this |
-| Baseline commit | Clean demo app was committed to generate accurate git diffs for patches — coordinate with partner on branch history |
+| **Mon Jul 6** | Repo + contracts + sandbox + **25 + 5 bugs seeded** ✅ |
+| **Tue Jul 7** | E2E with real Creator; calibrate 20–45%; trajectory store |
+| **Wed Jul 8** | Partner playbook loop; Runner re-runs same frozen bugs |
+| **Thu Jul 9** | Hold-out eval once |
+| **Fri Jul 10** | Freeze code; demo rehearsal; evidence committed |
+| **Sat Jul 11** | Submit |
 
 ---
 
 ## Definition of done (Judge half)
 
-You are done when:
-
-1. **25 + 5 hold-out** bugs seeded and validated
-2. **Real Creator** plugged in; iteration-0 pass rate calibrated to **20–45%**
+1. **25 + 5 hold-out** bugs seeded and validated ✅
+2. **Real Creator** plugged in; iteration-0 pass rate **20–45%**
 3. **Runner** runs full iterations unattended; metrics + chart committed
 4. **Trajectories** logged per attempt for partner's reflection loop
-5. **Verdict gate** stays binary — build + tests only, no LLM override
-6. **Live heal** demo path works with partner's Creator for Beat 1
+5. **Verdict gate** stays binary — build + tests only
+6. **Live heal** demo path works for Beat 1
+7. **Hold-out eval** run once to show generalization
 
 The product is the harness and the improvement curve, not the bug fixer itself (SOW §0).
