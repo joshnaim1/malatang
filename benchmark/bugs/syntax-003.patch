@@ -1,0 +1,14 @@
+# Missing closing brace on stats.sum export
+diff --git a/lib/stats.js b/lib/stats.js
+index db63eea..65e2520 100644
+--- a/lib/stats.js
++++ b/lib/stats.js
+@@ -1,7 +1,7 @@
+ /** Sum numeric values in an array. */
+ export function sum(values) {
+   return values.reduce((acc, value) => acc + value, 0);
+-}
++
+ 
+ /** Arithmetic mean; returns null for empty input. */
+ export function average(values) {

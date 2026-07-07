@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.pyc
+__pycache__/
+.venv/
+venv/
+results/*
+!results/.gitkeep
+!results/metrics.jsonl
+!results/pass_rate.png
+.DS_Store

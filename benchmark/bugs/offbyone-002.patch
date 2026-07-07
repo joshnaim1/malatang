@@ -1,0 +1,16 @@
+# countInStock iterates one past array end without guard
+diff --git a/lib/stats.js b/lib/stats.js
+index db63eea..f0f2347 100644
+--- a/lib/stats.js
++++ b/lib/stats.js
+@@ -21,8 +21,8 @@ export function pageSlice(items, page, pageSize) {
+ /** Count items whose quantity is at least minQty. */
+ export function countInStock(items, minQty) {
+   let count = 0;
+-  for (let i = 0; i < items.length; i += 1) {
+-    if (items[i]?.qty >= minQty) {
++  for (let i = 0; i <= items.length; i += 1) {
++    if (items[i].qty >= minQty) {
+       count += 1;
+     }
+   }

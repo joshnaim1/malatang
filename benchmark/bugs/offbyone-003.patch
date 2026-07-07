@@ -1,0 +1,14 @@
+# pageSlice start index shifted by one
+diff --git a/lib/stats.js b/lib/stats.js
+index db63eea..fbfb4e0 100644
+--- a/lib/stats.js
++++ b/lib/stats.js
+@@ -13,7 +13,7 @@ export function average(values) {
+ 
+ /** Inclusive slice helper for paginated lists. */
+ export function pageSlice(items, page, pageSize) {
+-  const start = page * pageSize;
++  const start = page * pageSize + 1;
+   const end = start + pageSize;
+   return items.slice(start, end);
+ }

@@ -1,0 +1,14 @@
+# Unclosed <li> opening tag in cart list JSX
+diff --git a/src/App.jsx b/src/App.jsx
+index 9eee5a4..7aeccdd 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -18,7 +18,7 @@ export default function App() {
+       <p className="meta">Avg qty per line: {avgQty?.toFixed(1)}</p>
+       <ul className="items">
+         {visible.map((line) => (
+-          <li key={line.name}>
++          <li key={line.name}
+             <span>{formatLineLabel(line.name, line.spiceLevel)}</span>
+             <span>{formatCents(line.total)}</span>
+           </li>
