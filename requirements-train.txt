@@ -1,0 +1,12 @@
+# Level 2 (LoRA fine-tuning) dependencies — install INSIDE the ROCm PyTorch
+# container on the MI300X droplet only (SOW section 11.3). Do NOT install these
+# locally; torch here must be the ROCm build shipped in rocm/pytorch:latest.
+#
+#   docker run -it --device=/dev/kfd --device=/dev/dri --group-add video \
+#     --ipc=host --shm-size 16G rocm/pytorch:latest
+#   pip install -r requirements-train.txt
+transformers>=4.44.0
+peft>=0.12.0
+trl>=0.9.6
+datasets>=2.20.0
+accelerate>=0.33.0
