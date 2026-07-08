@@ -81,10 +81,16 @@ npm test                    # 23 vitest tests
 $env:SANDBOX_TIMEOUT_S="120"
 $env:BENCHMARK_ATTEMPTS_PER_BUG="8"
 
-python -m harness.validate_bugs   # 25 training + 5 hold-out bugs must BREAK
-python -m harness.runner          # fake Creator → real Judge → metrics + chart
-python -m harness.chart           # regenerate chart from metrics.jsonl
+python -m harness.validate_bugs                        # 25 training + 5 hold-out bugs must BREAK
+python -m harness.live_heal --bug-id syntax-001 --creator mock   # Beat 1 heal demo (no GPU)
+python -m harness.runner --creator fake --fresh        # stub Creator → real Judge → metrics + chart
+python -m harness.runner --creator mock --fresh        # Creator pipeline (mock fix, no GPU) → real Judge
+python -m harness.runner --creator live --fresh        # real Creator on vLLM → calibrate 20-45% (needs droplet)
+python -m harness.holdout_eval                         # one-shot hold-out eval (run once, at the end)
+python -m harness.chart                                # regenerate chart from metrics.jsonl
 ```
+
+Creator backends: `fake` (self-contained stub), `mock` (Person A's pipeline, no GPU), `live` (vLLM on MI300X). The Judge verdict is always the deterministic build+tests gate.
 
 ---
 

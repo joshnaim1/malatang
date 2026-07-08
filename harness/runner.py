@@ -20,8 +20,14 @@ from harness.benchmark_io import (
     load_training_bugs,
 )
 from harness.config import REPO_ROOT, benchmark_attempts_per_bug
-from harness.fake_creator import create_mutation
+from harness.creator_backend import CreatorBackend, get_backend
 from harness.judge import verify_mutation
+from harness.sandbox import (
+    cleanup_sandbox,
+    clone_repo_to_temp,
+    apply_unified_diff,
+    run_build_and_tests,
+)
 from harness.trajectory import iteration_dir, record_attempt, write_summary
 
 METRICS_PATH = REPO_ROOT / "results" / "metrics.jsonl"
@@ -33,13 +39,31 @@ def append_metrics(record: dict[str, Any]) -> None:
         handle.write(json.dumps(record) + "\n")
 
 
+def capture_failing_output(bug_patch: str) -> str:
+    """Apply only the bug and return the real build/test failure text.
+
+    Gives the Creator's Observer the actual failing output (SOW live-heal flow)
+    instead of a description stand-in. Costs one extra sandbox run per bug.
+    """
+    workdir = clone_repo_to_temp()
+    try:
+        apply_unified_diff(workdir, bug_patch, label="bug")
+        gate = run_build_and_tests(workdir)
+    finally:
+        cleanup_sandbox(workdir)
+    return (gate.build_output + "\n" + gate.test_output).strip()
+
+
 def run_iteration(
     iteration: int = 0,
     playbook_version: str = "v0",
     model_checkpoint: str = "base",
+    backend: CreatorBackend | None = None,
+    observe_failure: bool = False,
 ) -> dict[str, Any]:
     bugs = load_training_bugs()
     attempts_per_bug = benchmark_attempts_per_bug()
+    creator = backend if backend is not None else get_backend("fake")
     traj_dir = iteration_dir(iteration)
     bugs_passed = 0
     total_llm_calls = 0
@@ -48,16 +72,17 @@ def run_iteration(
         bug_id = bug["id"]
         bug_class = bug.get("class", "unknown")
         bug_patch = load_bug_patch(TRAINING_DIR, bug)
+        failing_output = capture_failing_output(bug_patch) if observe_failure else None
         accepted = False
 
         for attempt in range(1, attempts_per_bug + 1):
             total_llm_calls += 1
-            mutation = create_mutation(
-                bug_id,
+            mutation = creator.create_mutation(
+                bug,
                 iteration=iteration,
                 playbook_version=playbook_version,
                 attempt=attempt,
-                use_canned_fix=(attempt == 1),
+                failing_output=failing_output,
             )
             verdict = verify_mutation(mutation, bug_patch)
             record_attempt(
@@ -98,17 +123,26 @@ def run_benchmark(
     iterations: int = 1,
     start_iteration: int = 0,
     model_checkpoint: str = "base",
+    creator: str = "fake",
+    observe_failure: bool = False,
 ) -> list[dict[str, Any]]:
+    backend = get_backend(creator)
+    observe = observe_failure or creator == "live"
     results: list[dict[str, Any]] = []
-    for offset in range(iterations):
-        iteration = start_iteration + offset
-        result = run_iteration(
-            iteration=iteration,
-            playbook_version=f"v{iteration}",
-            model_checkpoint=model_checkpoint,
-        )
-        print(json.dumps(result, indent=2))
-        results.append(result)
+    try:
+        for offset in range(iterations):
+            iteration = start_iteration + offset
+            result = run_iteration(
+                iteration=iteration,
+                playbook_version=f"v{iteration}",
+                model_checkpoint=model_checkpoint,
+                backend=backend,
+                observe_failure=observe,
+            )
+            print(json.dumps(result, indent=2))
+            results.append(result)
+    finally:
+        backend.close()
     return results
 
 
@@ -132,6 +166,17 @@ def _parse_args() -> argparse.Namespace:
         help="Model checkpoint label recorded in metrics (default: base)",
     )
     parser.add_argument(
+        "--creator",
+        choices=["fake", "mock", "live"],
+        default="fake",
+        help="Creator backend: fake stub, mock pipeline (no GPU), or live vLLM",
+    )
+    parser.add_argument(
+        "--observe-failure",
+        action="store_true",
+        help="Run a bug-only sandbox pass first to feed the Creator real failure output",
+    )
+    parser.add_argument(
         "--fresh",
         action="store_true",
         help="Truncate results/metrics.jsonl before running",
@@ -144,16 +189,35 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+CALIBRATION_LOW = 0.20
+CALIBRATION_HIGH = 0.45
+
+
+def _calibration_note(pass_rate: float) -> str:
+    pct = pass_rate * 100
+    if pass_rate < CALIBRATION_LOW:
+        return f"[calibration] {pct:.0f}% is BELOW the 20-45% band — bugs may be too hard; review clarity, do not loosen the gate."
+    if pass_rate > CALIBRATION_HIGH:
+        return f"[calibration] {pct:.0f}% is ABOVE the 20-45% band — harden bugs, never loosen tests (SOW section 6)."
+    return f"[calibration] {pct:.0f}% is IN the 20-45% target band."
+
+
 def main() -> None:
     args = _parse_args()
     if args.fresh and METRICS_PATH.exists():
         METRICS_PATH.unlink()
 
-    run_benchmark(
+    results = run_benchmark(
         iterations=args.iterations,
         start_iteration=args.start_iteration,
         model_checkpoint=args.model_checkpoint,
+        creator=args.creator,
+        observe_failure=args.observe_failure,
     )
+
+    # Calibration guidance only means something with a real Creator.
+    if args.creator == "live" and results:
+        print(_calibration_note(results[0]["pass_rate"]))
 
     if not args.no_chart:
         from harness.chart import generate_chart

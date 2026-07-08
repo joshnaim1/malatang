@@ -87,10 +87,13 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 | `benchmark/fixes/syntax-001.patch` | Canned true-positive fix for pipeline smoke test |
 | `contracts/` | Frozen mutation + verdict schemas and examples |
 | `harness/sandbox.py` | Tempdir clone, node_modules junction, `git apply`, build + test gate |
-| `harness/judge.py` | Bug patch → mutation diff → verdict JSON (+ regression signal) |
-| `harness/fake_creator.py` | Mock Creator stub (replace with partner's real Creator) |
-| `harness/runner.py` | Multi-iteration loop over **training** bugs; logs trajectories + metrics |
+| `harness/judge.py` | Bug patch → mutation diff → verdict JSON (contract-validated in + out, regression signal) |
+| `harness/contracts.py` | Judge-side validation against the frozen schemas (cheat-proof boundary) |
+| `harness/creator_backend.py` | Creator backend selector: `fake` / `mock` / `live` (the fake→real swap) |
+| `harness/fake_creator.py` | Self-contained stub Creator (one canned true positive) |
+| `harness/runner.py` | Multi-iteration loop; `--creator` backend; trajectories + metrics + calibration note |
 | `harness/holdout_eval.py` | One-shot eval over the **hold-out** set (separate from training) |
+| `harness/live_heal.py` | Live-heal demo (Beat 1 Judge half): break → Creator fix → Judge verifies green |
 | `harness/trajectory.py` | Trajectory store — writes every attempt to `trajectories/` |
 | `harness/benchmark_io.py` | Shared manifest/patch loaders (training + hold-out) |
 | `harness/chart.py` | Matplotlib pass-rate chart from `results/metrics.jsonl` |
@@ -175,28 +178,47 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 - [x] `regression_detected` is now real: `build_passed AND NOT tests_passed` (compiles but behaviour wrong)
 - [x] Never overrides the binary gate — diagnostic flag only (verified: `null-002` → `true`, accepted fixes → `false`)
 
+### 11. Creator integration (fake→real swap)
+- [x] `harness/creator_backend.py` — pluggable `fake` / `mock` / `live` backends
+- [x] Runner `--creator {fake,mock,live}` flag; `live` builds an AsyncOpenAI client against vLLM (fails loud on missing env)
+- [x] `--observe-failure` runs a bug-only sandbox pass first so the Creator's Observer sees the real failure text (auto-on for `live`)
+- [x] **E2E verified (no GPU):** `mock` Creator (Person A's real pipeline stages) → contract-valid mutation → real Judge → `syntax-001` healed
+
+### 12. Contract enforcement (cheat-proof boundary)
+- [x] `harness/contracts.py` — Judge validates the incoming mutation against `mutation.schema.json` before touching the sandbox
+- [x] Judge validates its own verdict against `verdict.schema.json` before returning
+- [x] Verified: malformed payloads and extra fields are rejected; the gate stays pure build+tests (no LLM path exists to override it)
+
+### 13. Live-heal demo (Beat 1, Judge half)
+- [x] `harness/live_heal.py` — inject bug → gate red → Creator proposes fix → Judge verifies green; works with any backend
+- [x] Verified green on `syntax-001` with `--creator mock`
+
+### 14. Calibration tooling
+- [x] Runner prints a 20–45% band verdict after a `--creator live` iteration-0 run
+- [x] One command when the droplet is up: `python -m harness.runner --fresh --creator live`
+
 ---
 
 ## Still to do (your backlog)
 
-### Blocked on real Creator (integration)
+### Blocked on the MI300X droplet (needs vLLM live + `.env`)
 
-- [ ] **Calibrate difficulty with real Creator** — iteration-0 pass rate **20–45%**
-- [ ] **Swap fake Creator for real Creator** — same contract shape, no field renames
+- [ ] **Calibrate iteration-0 to 20–45%** — run `--creator live`; if >60% harden bugs, never loosen the gate
 - [ ] **Real multi-iteration run** — line only rises with a self-improving Creator (harness never fakes it)
 
 ### Friday Jul 10 — demo polish
 
-- [ ] **Live heal opener** (SOW §3 Beat 1) — Judge verify + redeploy half
+- [ ] **Live-heal recording** — script works (`harness/live_heal.py`); add the visible page-break/redeploy theater on top
 - [ ] **Commit latest evidence artifacts** (`metrics.jsonl` + `pass_rate.png`) after calibration
+
+### Done
+
 - [x] **Root README** — [`README.md`](README.md) at repo root
-
-### Integration checklist (when partner is ready)
-
-- [ ] Partner's Creator validates against `contracts/mutation.schema.json`
-- [ ] Judge verdict validates against `contracts/verdict.schema.json`
-- [ ] End-to-end: real Creator + real Judge on one bug
-- [ ] Fireworks commentary never overrides test gate
+- [x] **Swap fake Creator for real Creator** — backend selector; contract shape unchanged
+- [x] **End-to-end: Creator + real Judge on one bug** — verified in `mock` mode
+- [x] **Partner's Creator validates against `contracts/mutation.schema.json`** — enforced at the Judge boundary
+- [x] **Judge verdict validates against `contracts/verdict.schema.json`**
+- [x] **Fireworks commentary never overrides test gate** — Judge has no LLM path; verdict is pure build+tests
 
 ---
 
@@ -212,16 +234,18 @@ npm run build && npm test
 $env:SANDBOX_TIMEOUT_S="120"
 $env:BENCHMARK_ATTEMPTS_PER_BUG="8"
 
-python -m harness.validate_bugs                    # ~6 min — all 30 bugs must BREAK
-python -m harness.runner --fresh --iterations 1    # fake Creator → real Judge → metrics + chart
-python -m harness.runner --iterations 3            # multi-iteration (plumbing; line rises only with real Creator)
-python -m harness.holdout_eval                     # one-shot hold-out eval (run once, at the end)
-python -m harness.chart                            # regenerate chart from metrics.jsonl
+python -m harness.validate_bugs                          # ~6 min — all 30 bugs must BREAK
+python -m harness.live_heal --bug-id syntax-001 --creator mock   # Beat 1 heal demo (no GPU)
+python -m harness.runner --fresh --iterations 1          # fake Creator → real Judge → metrics + chart
+python -m harness.runner --creator mock --fresh          # Person A's pipeline (mock fix, no GPU) → real Judge
+python -m harness.runner --creator live --fresh          # real Creator on vLLM → calibrate 20-45% (needs droplet)
+python -m harness.holdout_eval                           # one-shot hold-out eval (run once, at the end)
+python -m harness.chart                                  # regenerate chart from metrics.jsonl
 
 python harness/generate_patches.py   # dev: regenerate patches after clean-source edits
 ```
 
-Runner flags: `--iterations N`, `--start-iteration K`, `--model-checkpoint LABEL`, `--fresh` (truncate metrics), `--no-chart`.
+Runner flags: `--creator {fake,mock,live}`, `--iterations N`, `--start-iteration K`, `--model-checkpoint LABEL`, `--observe-failure`, `--fresh` (truncate metrics), `--no-chart`.
 
 ---
 
@@ -252,8 +276,8 @@ Each iteration appends one JSON line to `results/metrics.jsonl`:
 | Day | Your goal |
 |---|---|
 | **Mon Jul 6** | Repo + contracts + sandbox + **25 + 5 bugs seeded** ✅ |
-| **Tue Jul 7** | Harness ready ✅ (trajectory store, multi-iteration runner, hold-out eval, perf, regression) — E2E + calibrate 20–45% once real Creator lands |
-| **Wed Jul 8** | Partner playbook loop; Runner re-runs same frozen bugs |
+| **Tue Jul 7** | Harness + integration ready ✅ (trajectory store, multi-iteration runner, hold-out eval, perf, regression, fake→real swap, contract enforcement, live-heal, mock E2E) — calibrate once droplet is up |
+| **Wed Jul 8** | Partner playbook loop; Runner re-runs same frozen bugs (`--creator live`) |
 | **Thu Jul 9** | Hold-out eval once |
 | **Fri Jul 10** | Freeze code; demo rehearsal; evidence committed |
 | **Sat Jul 11** | Submit |
@@ -263,11 +287,11 @@ Each iteration appends one JSON line to `results/metrics.jsonl`:
 ## Definition of done (Judge half)
 
 1. **25 + 5 hold-out** bugs seeded and validated ✅
-2. **Real Creator** plugged in; iteration-0 pass rate **20–45%**
-3. **Runner** runs full iterations unattended; metrics + chart committed — plumbing ✅ (needs real Creator for the curve)
+2. **Real Creator** plugged in (backend selector) ✅ — iteration-0 pass rate **20–45%** pending droplet
+3. **Runner** runs full iterations unattended; metrics + chart committed — plumbing ✅ (needs live Creator for the curve)
 4. **Trajectories** logged per attempt for partner's reflection loop ✅
-5. **Verdict gate** stays binary — build + tests only ✅
-6. **Live heal** demo path works for Beat 1
-7. **Hold-out eval** run once to show generalization
+5. **Verdict gate** stays binary — build + tests only, contract-enforced ✅
+6. **Live-heal** demo path works for Beat 1 ✅ (recording polish pending)
+7. **Hold-out eval** wired ✅ — run once at the end to show generalization
 
 The product is the harness and the improvement curve, not the bug fixer itself (SOW §0).
