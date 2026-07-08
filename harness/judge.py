@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.config import REPO_ROOT
+from harness.contracts import validate_mutation, validate_verdict
 from harness.sandbox import (
     GateResult,
     apply_unified_diff,
@@ -44,6 +45,9 @@ def verify_mutation(
     bug_patch_text: str,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
+    # Cheat-proof boundary: reject anything that violates the frozen contract
+    # before it ever touches the sandbox.
+    validate_mutation(mutation_payload)
     mutation = mutation_payload["mutation"]
     bug_id = mutation["bug_id"]
     attempt = mutation["attempt"]
@@ -59,7 +63,7 @@ def verify_mutation(
         cleanup_sandbox(workdir)
 
     accepted = gate.build_passed and gate.tests_passed
-    return {
+    verdict = {
         "bug_id": bug_id,
         "attempt": attempt,
         "accepted": accepted,
@@ -69,6 +73,7 @@ def verify_mutation(
         "wall_time_s": round(gate.wall_time_s, 2),
         "notes": _summarize_gate(gate),
     }
+    return validate_verdict(verdict)
 
 
 def verify_bug_state(bug_patch_text: str, repo_root: Path | None = None) -> GateResult:
