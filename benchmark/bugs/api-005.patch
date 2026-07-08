@@ -1,0 +1,13 @@
+# dollarsToCents reads currency part instead of integer part
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..1a2b00f 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -32,6 +32,6 @@ export function configuredCurrencyCode() {
+ /** Parse a whole-dollar display string into cents. */
+ export function dollarsToCents(display) {
+   const parts = usdFormatter.formatToParts(Number(display));
+-  const integer = parts.find((part) => part.type === "integer");
++  const integer = parts.find((part) => part.type === "currency");
+   return Number(integer?.value ?? 0) * 100;
+ }

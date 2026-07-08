@@ -1,0 +1,34 @@
+{
+  "bugs": [
+    {
+      "id": "holdout-001",
+      "class": "syntax",
+      "patch": "holdout-001.patch",
+      "description": "Missing closing brace on currency.formatMoney export"
+    },
+    {
+      "id": "holdout-002",
+      "class": "off-by-one",
+      "patch": "holdout-002.patch",
+      "description": "loadCartTotal reduce starts from wrong index"
+    },
+    {
+      "id": "holdout-003",
+      "class": "null-handling",
+      "patch": "holdout-003.patch",
+      "description": "formatMoney drops null cents guard"
+    },
+    {
+      "id": "holdout-004",
+      "class": "wrong-api",
+      "patch": "holdout-004.patch",
+      "description": "formatMoney uses invalid currency option in NumberFormat"
+    },
+    {
+      "id": "holdout-005",
+      "class": "async",
+      "patch": "holdout-005.patch",
+      "description": "firstSpiceLabel missing await on fetchSpiceLabel"
+    }
+  ]
+}

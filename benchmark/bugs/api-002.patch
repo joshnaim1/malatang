@@ -1,0 +1,18 @@
+# formatMoneyDigits mis-filters Intl formatToParts types
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..8c999df 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -14,7 +14,11 @@ export function formatMoney(cents) {
+ 
+ /** Compact display without currency symbol (digits only). */
+ export function formatMoneyDigits(cents) {
+-  return formatMoney(cents).replace(/[^\d.]/g, "");
++  return usdFormatter
++    .formatToParts(cents / 100)
++    .filter((part) => part.type === "integer")
++    .map((part) => part.value)
++    .join("");
+ }
+ 
+ /** Extract currency symbol from a numeric dollar amount. */

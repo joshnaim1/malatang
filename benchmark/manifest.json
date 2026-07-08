@@ -1,0 +1,154 @@
+{
+  "bugs": [
+    {
+      "id": "syntax-001",
+      "class": "syntax",
+      "patch": "syntax-001.patch",
+      "description": "Missing closing angle bracket on </main> JSX tag"
+    },
+    {
+      "id": "syntax-002",
+      "class": "syntax",
+      "patch": "syntax-002.patch",
+      "description": "Unclosed <li> opening tag in cart list JSX"
+    },
+    {
+      "id": "syntax-003",
+      "class": "syntax",
+      "patch": "syntax-003.patch",
+      "description": "Missing closing brace on stats.sum export"
+    },
+    {
+      "id": "syntax-004",
+      "class": "syntax",
+      "patch": "syntax-004.patch",
+      "description": "Unclosed template literal in formatCents return"
+    },
+    {
+      "id": "syntax-005",
+      "class": "syntax",
+      "patch": "syntax-005.patch",
+      "description": "Missing closing parenthesis on formatCents JSX call"
+    },
+    {
+      "id": "syntax-006",
+      "class": "syntax",
+      "patch": "syntax-006.patch",
+      "description": "Unclosed StrictMode JSX tag in main entry"
+    },
+    {
+      "id": "offbyone-001",
+      "class": "off-by-one",
+      "patch": "offbyone-001.patch",
+      "description": "pageSlice includes one extra item beyond page size"
+    },
+    {
+      "id": "offbyone-002",
+      "class": "off-by-one",
+      "patch": "offbyone-002.patch",
+      "description": "countInStock iterates one past array end without guard"
+    },
+    {
+      "id": "offbyone-003",
+      "class": "off-by-one",
+      "patch": "offbyone-003.patch",
+      "description": "pageSlice start index shifted by one"
+    },
+    {
+      "id": "offbyone-004",
+      "class": "off-by-one",
+      "patch": "offbyone-004.patch",
+      "description": "sum uses wrong reduce initial value"
+    },
+    {
+      "id": "offbyone-005",
+      "class": "off-by-one",
+      "patch": "offbyone-005.patch",
+      "description": "pageSlice end index one item short"
+    },
+    {
+      "id": "null-001",
+      "class": "null-handling",
+      "patch": "null-001.patch",
+      "description": "formatLineLabel dereferences spiceLevel without optional chaining"
+    },
+    {
+      "id": "null-002",
+      "class": "null-handling",
+      "patch": "null-002.patch",
+      "description": "average returns 0 instead of null for empty input"
+    },
+    {
+      "id": "null-003",
+      "class": "null-handling",
+      "patch": "null-003.patch",
+      "description": "sumLineTotals adds undefined tax field producing NaN"
+    },
+    {
+      "id": "null-004",
+      "class": "null-handling",
+      "patch": "null-004.patch",
+      "description": "formatCents drops null guard"
+    },
+    {
+      "id": "null-005",
+      "class": "null-handling",
+      "patch": "null-005.patch",
+      "description": "average drops null input guard"
+    },
+    {
+      "id": "api-001",
+      "class": "wrong-api",
+      "patch": "api-001.patch",
+      "description": "Intl.NumberFormat.format receives cents instead of dollars"
+    },
+    {
+      "id": "api-002",
+      "class": "wrong-api",
+      "patch": "api-002.patch",
+      "description": "formatMoneyDigits mis-filters Intl formatToParts types"
+    },
+    {
+      "id": "api-003",
+      "class": "wrong-api",
+      "patch": "api-003.patch",
+      "description": "configuredCurrencyCode reads resolvedOptions style not currency"
+    },
+    {
+      "id": "api-004",
+      "class": "wrong-api",
+      "patch": "api-004.patch",
+      "description": "currencySymbolFor uses format instead of formatToParts"
+    },
+    {
+      "id": "api-005",
+      "class": "wrong-api",
+      "patch": "api-005.patch",
+      "description": "dollarsToCents reads currency part instead of integer part"
+    },
+    {
+      "id": "async-001",
+      "class": "async",
+      "patch": "async-001.patch",
+      "description": "loadCartTotal missing await on Promise.all"
+    },
+    {
+      "id": "async-002",
+      "class": "async",
+      "patch": "async-002.patch",
+      "description": "validateCartSpices missing await on Promise.all"
+    },
+    {
+      "id": "async-003",
+      "class": "async",
+      "patch": "async-003.patch",
+      "description": "loadCartTotal uses await outside async function"
+    },
+    {
+      "id": "async-004",
+      "class": "async",
+      "patch": "async-004.patch",
+      "description": "validateCartSpices short-circuits to true without checking"
+    }
+  ]
+}

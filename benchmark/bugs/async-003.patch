@@ -1,0 +1,14 @@
+# loadCartTotal uses await outside async function
+diff --git a/lib/asyncCart.js b/lib/asyncCart.js
+index 42475cc..3de460e 100644
+--- a/lib/asyncCart.js
++++ b/lib/asyncCart.js
+@@ -13,7 +13,7 @@ export async function fetchSpiceLabel(spiceId) {
+ }
+ 
+ /** Sum line totals asynchronously. */
+-export async function loadCartTotal(lines) {
++export function loadCartTotal(lines) {
+   const totals = await Promise.all(
+     lines.map(async (line) => line.total),
+   );

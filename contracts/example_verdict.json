@@ -1,0 +1,10 @@
+{
+  "bug_id": "syntax-001",
+  "attempt": 1,
+  "accepted": false,
+  "build_passed": false,
+  "tests_passed": false,
+  "regression_detected": false,
+  "wall_time_s": 12.4,
+  "notes": "mock verdict — Judge overwrites with sandbox result"
+}

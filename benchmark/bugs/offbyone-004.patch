@@ -1,0 +1,13 @@
+# sum uses wrong reduce initial value
+diff --git a/lib/stats.js b/lib/stats.js
+index f739fce..979b0c5 100644
+--- a/lib/stats.js
++++ b/lib/stats.js
+@@ -1,6 +1,6 @@
+ /** Sum numeric values in an array. */
+ export function sum(values) {
+-  return values.reduce((acc, value) => acc + value, 0);
++  return values.reduce((acc, value) => acc + value, 1);
+ }
+ 
+ /** Arithmetic mean; returns null for empty input. */

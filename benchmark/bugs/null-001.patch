@@ -1,0 +1,14 @@
+# formatLineLabel dereferences spiceLevel without optional chaining
+diff --git a/lib/format.js b/lib/format.js
+index 190e463..e7474b0 100644
+--- a/lib/format.js
++++ b/lib/format.js
+@@ -9,7 +9,7 @@ export function formatCents(cents) {
+ 
+ /** Format a cart line label with optional spice note. */
+ export function formatLineLabel(name, spiceLevel) {
+-  const spice = spiceLevel?.label ?? "mild";
++  const spice = spiceLevel.label ?? "mild";
+   return `${name} (${spice})`;
+ }
+ 

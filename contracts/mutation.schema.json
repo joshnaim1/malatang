@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mutation.schema.json",
+  "type": "object",
+  "required": ["mutation"],
+  "properties": {
+    "mutation": {
+      "type": "object",
+      "required": [
+        "iteration",
+        "playbook_version",
+        "bug_id",
+        "attempt",
+        "type",
+        "trigger",
+        "file",
+        "diff",
+        "reasoning",
+        "model"
+      ],
+      "properties": {
+        "iteration": { "type": "integer", "minimum": 0 },
+        "playbook_version": { "type": "string" },
+        "bug_id": { "type": "string" },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "type": { "type": "string" },
+        "trigger": { "type": "string" },
+        "file": { "type": "string" },
+        "diff": { "type": "string" },
+        "reasoning": { "type": "string" },
+        "model": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

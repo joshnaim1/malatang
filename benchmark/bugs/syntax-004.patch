@@ -1,0 +1,14 @@
+# Unclosed template literal in formatCents return
+diff --git a/lib/format.js b/lib/format.js
+index 190e463..3663f29 100644
+--- a/lib/format.js
++++ b/lib/format.js
+@@ -4,7 +4,7 @@ export function formatCents(cents) {
+     return "$0.00";
+   }
+   const dollars = cents / 100;
+-  return `$${dollars.toFixed(2)}`;
++  return `$${dollars.toFixed(2}`;
+ }
+ 
+ /** Format a cart line label with optional spice note. */

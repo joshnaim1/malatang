@@ -1,0 +1,17 @@
+# formatMoney drops null cents guard
+diff --git a/lib/currency.js b/lib/currency.js
+index d0612d4..0657a75 100644
+--- a/lib/currency.js
++++ b/lib/currency.js
+@@ -6,10 +6,7 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
+ 
+ /** Format integer cents as a USD string. */
+ export function formatMoney(cents) {
+-  if (cents == null) {
+-    return usdFormatter.format(0);
+-  }
+-  return usdFormatter.format(cents / 100);
++  return usdFormatter.format(cents);
+ }
+ 
+ /** Compact display without currency symbol (digits only). */

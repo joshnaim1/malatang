@@ -1,0 +1,14 @@
+# validateCartSpices short-circuits to true without checking
+diff --git a/lib/asyncCart.js b/lib/asyncCart.js
+index 42475cc..c837790 100644
+--- a/lib/asyncCart.js
++++ b/lib/asyncCart.js
+@@ -27,7 +27,7 @@ export async function validateCartSpices(lines) {
+     return fetchSpiceLabel(key);
+   });
+   const results = await Promise.all(checks);
+-  return results.every((label) => label !== "Unknown");
++  return true;
+ }
+ 
+ /** First spice label for a cart, or null when empty. */

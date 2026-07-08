@@ -1,0 +1,13 @@
+# Missing closing angle bracket on </main> JSX tag
+diff --git a/src/App.jsx b/src/App.jsx
+index 9eee5a4..42bfa2a 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -25,6 +25,6 @@ export default function App() {
+         ))}
+       </ul>
+       <p className="total">Total: {formatCents(grandTotal)}</p>
+-    </main>
++    </main
+   );
+ }

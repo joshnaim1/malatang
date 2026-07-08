@@ -1,0 +1,14 @@
+{
+  "mutation": {
+    "iteration": 0,
+    "playbook_version": "v0",
+    "bug_id": "syntax-001",
+    "attempt": 1,
+    "type": "code",
+    "trigger": "benchmark",
+    "file": "src/App.jsx",
+    "diff": "--- a/src/App.jsx\n+++ b/src/App.jsx\n@@ -1,3 +1,3 @@\n placeholder diff for mock Creator\n",
+    "reasoning": "mock Creator stub — replace diff with real fix during integration",
+    "model": "mock-creator"
+  }
+}
