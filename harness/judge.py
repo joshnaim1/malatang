@@ -29,6 +29,17 @@ def _summarize_gate(gate: GateResult) -> str:
     return f"tests failed: {hint[:200]}"
 
 
+def _summarize_apply_failure(exc: Exception) -> str:
+    """One-line note for a fix diff the sandbox could not apply.
+
+    A malformed/unapplyable diff from the Creator is a legitimate rejection, not
+    an error the harness should crash on. Kept short so it fits the verdict.
+    """
+    detail = str(exc).strip().splitlines()
+    hint = detail[-1] if detail else "git apply failed"
+    return f"fix diff did not apply: {hint[:180]}"
+
+
 def _detect_regression(gate: GateResult) -> bool:
     """Real, deterministic regression signal.
 
@@ -57,7 +68,24 @@ def verify_mutation(
     try:
         apply_unified_diff(workdir, bug_patch_text, label="bug")
         if fix_diff.strip() and "placeholder diff" not in fix_diff:
-            apply_unified_diff(workdir, fix_diff, label="fix")
+            try:
+                apply_unified_diff(workdir, fix_diff, label="fix")
+            except RuntimeError as exc:
+                # A contract-valid diff that will not apply is a failed attempt,
+                # not a harness crash. Score it as a clean reject so unattended
+                # benchmark runs never abort on malformed Creator output.
+                return validate_verdict(
+                    {
+                        "bug_id": bug_id,
+                        "attempt": attempt,
+                        "accepted": False,
+                        "build_passed": False,
+                        "tests_passed": False,
+                        "regression_detected": False,
+                        "wall_time_s": 0.0,
+                        "notes": _summarize_apply_failure(exc),
+                    }
+                )
         gate = run_build_and_tests(workdir)
     finally:
         cleanup_sandbox(workdir)
