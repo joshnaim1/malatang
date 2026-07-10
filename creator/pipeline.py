@@ -40,7 +40,7 @@ def build_mutation(
             "type": "code",
             "trigger": trigger,
             "file": obs.file_path,
-            "diff": normalize_fix_diff(obs.file_path, fix.diff),
+            "diff": normalize_fix_diff(obs.file_path, fix.diff, buggy_source=obs.buggy_source),
             "reasoning": fix.reasoning,
             "model": model_label,
         }
