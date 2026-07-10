@@ -16,6 +16,7 @@ from openai import AsyncOpenAI
 
 from creator import contracts, observer
 from creator.bug_context import BugContext
+from creator.diff_utils import normalize_fix_diff
 from creator.fix import FixResult, generate_fix
 
 
@@ -39,7 +40,7 @@ def build_mutation(
             "type": "code",
             "trigger": trigger,
             "file": obs.file_path,
-            "diff": fix.diff,
+            "diff": normalize_fix_diff(obs.file_path, fix.diff),
             "reasoning": fix.reasoning,
             "model": model_label,
         }
