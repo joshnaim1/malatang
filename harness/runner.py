@@ -33,6 +33,35 @@ from harness.trajectory import iteration_dir, record_attempt, write_summary
 METRICS_PATH = REPO_ROOT / "results" / "metrics.jsonl"
 
 
+def _creator_error_mutation(
+    bug: dict[str, str],
+    *,
+    iteration: int,
+    playbook_version: str,
+    attempt: int,
+    model_label: str,
+    reason: str,
+) -> dict[str, Any]:
+    """Contract-valid mutation when the Creator raises before producing a fix."""
+    from creator.bug_context import build_bug_context
+
+    ctx = build_bug_context(bug["id"])
+    return {
+        "mutation": {
+            "iteration": iteration,
+            "playbook_version": playbook_version,
+            "bug_id": bug["id"],
+            "attempt": attempt,
+            "type": "code",
+            "trigger": "benchmark",
+            "file": ctx.file_path,
+            "diff": "placeholder diff (creator error)",
+            "reasoning": reason[:120],
+            "model": model_label,
+        }
+    }
+
+
 def append_metrics(record: dict[str, Any]) -> None:
     METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with METRICS_PATH.open("a", encoding="utf-8") as handle:
@@ -77,13 +106,23 @@ def run_iteration(
 
         for attempt in range(1, attempts_per_bug + 1):
             total_llm_calls += 1
-            mutation = creator.create_mutation(
-                bug,
-                iteration=iteration,
-                playbook_version=playbook_version,
-                attempt=attempt,
-                failing_output=failing_output,
-            )
+            try:
+                mutation = creator.create_mutation(
+                    bug,
+                    iteration=iteration,
+                    playbook_version=playbook_version,
+                    attempt=attempt,
+                    failing_output=failing_output,
+                )
+            except Exception as exc:  # noqa: BLE001 — score Creator failures as attempts
+                mutation = _creator_error_mutation(
+                    bug,
+                    iteration=iteration,
+                    playbook_version=playbook_version,
+                    attempt=attempt,
+                    model_label=getattr(creator, "name", "creator"),
+                    reason=f"creator failed: {type(exc).__name__}",
+                )
             verdict = verify_mutation(mutation, bug_patch)
             record_attempt(
                 traj_dir,

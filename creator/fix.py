@@ -43,7 +43,8 @@ def _system_prompt(playbook_text: str) -> str:
         '  "plan": string,\n'
         '  "reasoning": string (one line, <= 120 chars),\n'
         '  "diff": string (a valid unified diff that `git apply -p1` accepts, '
-        "with a/ and b/ path prefixes and @@ hunk headers).\n\n"
+        "with a/ and b/ path prefixes and @@ hunk headers; use \\n for "
+        "line breaks inside this JSON string).\n\n"
         "The `-` and `+` lines must change the broken line — not unrelated "
         "context. Example hunk for a one-character JSX fix:\n"
         "  --- a/src/App.jsx\n"
@@ -78,7 +79,9 @@ def _extract_json(text: str) -> dict:
     if candidate is None:
         obj = _FIRST_OBJECT_RE.search(text)
         candidate = obj.group(0) if obj else text
-    return json.loads(candidate)
+    # Models often put literal newlines inside the "diff" string; strict=False
+    # accepts that common pattern instead of aborting the benchmark.
+    return json.loads(candidate, strict=False)
 
 
 async def generate_fix(
