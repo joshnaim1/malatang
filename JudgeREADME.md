@@ -90,6 +90,9 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 | `harness/judge.py` | Bug patch → mutation diff → verdict JSON (contract-validated in + out, regression signal) |
 | `harness/contracts.py` | Judge-side validation against the frozen schemas (cheat-proof boundary) |
 | `harness/creator_backend.py` | Creator backend selector: `fake` / `mock` / `live` (the fake→real swap) |
+| `creator/diff_utils.py` | Normalizes live Creator diffs with `--- a/` / `+++ b/` headers for `git apply` |
+| `creator/pipeline.py` | Creator stages → contract-shaped mutation (calls diff normalization) |
+| `scripts/notebook_setup.sh` | In-notebook bootstrap: deps + vLLM on localhost:8090 |
 | `harness/fake_creator.py` | Self-contained stub Creator (one canned true positive) |
 | `harness/runner.py` | Multi-iteration loop; `--creator` backend; trajectories + metrics + calibration note |
 | `harness/holdout_eval.py` | One-shot eval over the **hold-out** set (separate from training) |
@@ -197,14 +200,25 @@ All cross-team I/O goes through frozen JSON in [`contracts/`](contracts/). Contr
 - [x] Runner prints a 20–45% band verdict after a `--creator live` iteration-0 run
 - [x] One command when the droplet is up: `python -m harness.runner --fresh --creator live`
 
+### 15. Judge robustness (unapplyable diffs)
+- [x] `harness/judge.py` — contract-valid fix diffs that fail `git apply` score as rejected attempts instead of crashing the Runner (`PR #5`)
+
+### 16. Creator diff normalization (live path)
+- [x] `creator/diff_utils.py` — synthesizes `--- a/{file}` / `+++ b/{file}` headers when the model omits them
+- [x] `creator/pipeline.py` — normalizes every mutation diff before contract validation
+- [x] `creator/fix.py` — prompt example stresses changing the broken line, not no-op hunks
+- [x] Verified: headerless live-style hunks gain headers; canned `syntax-001` fix still applies green
+
 ---
 
 ## Still to do (your backlog)
 
-### Blocked on the MI300X droplet (needs vLLM live + `.env`)
+### Blocked on GPU box + `.env` (notebook or droplet)
 
 - [ ] **Calibrate iteration-0 to 20–45%** — run `--creator live`; if >60% harden bugs, never loosen the gate
 - [ ] **Real multi-iteration run** — line only rises with a self-improving Creator (harness never fakes it)
+
+Diff format blockers are resolved (Judge rejects unapplyable diffs gracefully; Creator synthesizes headers). Remaining risk is **model fix quality**, not `git apply` crashes.
 
 ### Friday Jul 10 — demo polish
 
@@ -236,9 +250,10 @@ $env:BENCHMARK_ATTEMPTS_PER_BUG="8"
 
 python -m harness.validate_bugs                          # ~6 min — all 30 bugs must BREAK
 python -m harness.live_heal --bug-id syntax-001 --creator mock   # Beat 1 heal demo (no GPU)
+python -m scripts.creator_e2e --bug-id syntax-001 --live         # one bug, live Creator (needs vLLM)
 python -m harness.runner --fresh --iterations 1          # fake Creator → real Judge → metrics + chart
-python -m harness.runner --creator mock --fresh          # Person A's pipeline (mock fix, no GPU) → real Judge
-python -m harness.runner --creator live --fresh          # real Creator on vLLM → calibrate 20-45% (needs droplet)
+python -m harness.runner --creator mock --fresh          # Creator pipeline (mock fix, no GPU) → real Judge
+python -m harness.runner --creator live --fresh          # real Creator on vLLM → calibrate 20-45% (notebook or droplet)
 python -m harness.holdout_eval                           # one-shot hold-out eval (run once, at the end)
 python -m harness.chart                                  # regenerate chart from metrics.jsonl
 
@@ -276,7 +291,7 @@ Each iteration appends one JSON line to `results/metrics.jsonl`:
 | Day | Your goal |
 |---|---|
 | **Mon Jul 6** | Repo + contracts + sandbox + **25 + 5 bugs seeded** ✅ |
-| **Tue Jul 7** | Harness + integration ready ✅ (trajectory store, multi-iteration runner, hold-out eval, perf, regression, fake→real swap, contract enforcement, live-heal, mock E2E) — calibrate once droplet is up |
+| **Tue Jul 7** | Harness + integration ready ✅ (trajectory store, multi-iteration runner, hold-out eval, perf, regression, fake→real swap, contract enforcement, live-heal, mock E2E, diff normalization) — calibrate once GPU box is up |
 | **Wed Jul 8** | Partner playbook loop; Runner re-runs same frozen bugs (`--creator live`) |
 | **Thu Jul 9** | Hold-out eval once |
 | **Fri Jul 10** | Freeze code; demo rehearsal; evidence committed |

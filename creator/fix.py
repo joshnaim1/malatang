@@ -44,6 +44,15 @@ def _system_prompt(playbook_text: str) -> str:
         '  "reasoning": string (one line, <= 120 chars),\n'
         '  "diff": string (a valid unified diff that `git apply -p1` accepts, '
         "with a/ and b/ path prefixes and @@ hunk headers).\n\n"
+        "The `-` and `+` lines must change the broken line — not unrelated "
+        "context. Example hunk for a one-character JSX fix:\n"
+        "  --- a/src/App.jsx\n"
+        "  +++ b/src/App.jsx\n"
+        "  @@ -28,3 +28,3 @@\n"
+        "       </ul>\n"
+        "   -    </main\n"
+        "   +    </main>\n"
+        "     );\n\n"
         "Do not wrap the JSON in prose. Do not include markdown fences.\n\n"
         "=== STRATEGY PLAYBOOK (follow it) ===\n"
         f"{playbook_text.strip()}\n"
