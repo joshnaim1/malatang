@@ -16,12 +16,13 @@ records use the same jsonl-under-``results/`` convention but land in a separate
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI
 
 from creator import config
 
@@ -50,6 +51,7 @@ def fireworks_client() -> AsyncOpenAI:
     return AsyncOpenAI(
         base_url=config.fireworks_base_url(),
         api_key=config.fireworks_api_key(),
+        timeout=config.fireworks_timeout_s(),
     )
 
 
@@ -95,12 +97,20 @@ async def chat(
 ) -> LLMResponse:
     """Single chat completion with token logging. ``role`` labels the pipeline
     stage (e.g. ``fix``, ``reflection``) for later analysis."""
-    resp = await client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    max_attempts = 2 if backend == "fireworks" else 1
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = await client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            break
+        except (APITimeoutError, APIConnectionError):
+            if attempt == max_attempts:
+                raise
+            await asyncio.sleep(2 ** (attempt - 1))
     usage = getattr(resp, "usage", None)
     _log_call(
         backend=backend,

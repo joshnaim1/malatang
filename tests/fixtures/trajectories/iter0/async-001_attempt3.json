@@ -1,0 +1,31 @@
+{
+  "iteration": 0,
+  "bug_id": "async-001",
+  "bug_class": "async",
+  "attempt": 3,
+  "accepted": true,
+  "mutation": {
+    "mutation": {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "bug_id": "async-001",
+      "attempt": 3,
+      "type": "code",
+      "trigger": "benchmark",
+      "file": "lib/asyncCart.js",
+      "diff": "--- a/lib/asyncCart.js\n+++ b/lib/asyncCart.js\n@@ -1 +1 @@\n-old\n+new\n",
+      "reasoning": "added missing await",
+      "model": "fixture"
+    }
+  },
+  "verdict": {
+    "bug_id": "async-001",
+    "attempt": 3,
+    "accepted": true,
+    "build_passed": true,
+    "tests_passed": true,
+    "regression_detected": false,
+    "wall_time_s": 0.1,
+    "notes": "build and tests passed"
+  }
+}

@@ -2,20 +2,20 @@
 
 **AMD Developer Hackathon ACT II · Unicorn track**
 
-An agent that fixes bugs, measures its pass rate on a fixed benchmark, and gets better between runs — first via a self-written playbook, then (stretch) via fine-tuned weights. **The product is the harness and the improvement curve**, not the bug fixer itself.
-
-Full project spec: [`SOW.md`](SOW.md)
-
----
+An agent that fixes bugs, measures its pass rate on a frozen benchmark, and gets better between runs by rewriting its own strategy playbook from sandbox-verified wins and failures. **The product is the harness and the measured improvement curve, not the bug fixer itself.**
 
 ## Operational definition of "self-improving"
 
-We claim self-improvement **if and only if** all of the following hold:
+Malatang claims self-improvement **if and only if** all four conditions hold:
 
 1. **Same benchmark.** Every iteration runs the identical, frozen set of seeded bugs.
 2. **Automatic verification.** A fix counts as a pass only if the build succeeds and the test suite passes in a sandbox. No human judging, no LLM vibes as ground truth.
 3. **Rising pass rate.** Iteration N+1 pass rate > iteration N pass rate, measured on the same set.
 4. **Self-modification between runs.** The only thing that changes between iterations is something the system changed about itself (playbook at Level 1; model weights at Level 2 stretch).
+
+![Benchmark pass rate by iteration](results/pass_rate.png)
+
+The chart is generated only from `results/metrics.jsonl`; live notebook artifacts must be synced before submission. Full project spec: [`SOW.md`](SOW.md).
 
 ---
 
@@ -49,14 +49,12 @@ Team split and runbooks: [`SOW.md`](SOW.md) · Judge/harness guide: [`JudgeREADM
 
 ### Setup
 
-```powershell
+```bash
 git clone https://github.com/joshnaim1/malatang.git
 cd malatang
-git checkout aaron          # Judge/harness branch (or main when merged)
-
-copy .env.example .env      # fill in values; never commit .env
+cp .env.example .env        # fill in values; never commit .env
 npm install
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 Required env vars (fail loudly if missing):
@@ -68,43 +66,42 @@ Required env vars (fail loudly if missing):
 
 See [`.env.example`](.env.example) for full list (Fireworks, vLLM, etc.).
 
-### Verify clean demo app
+### Verify locally without GPU or API calls
 
-```powershell
+```bash
 npm run build
 npm test                    # 23 vitest tests
-```
-
-### Run the harness
-
-```powershell
-$env:SANDBOX_TIMEOUT_S="120"
-$env:BENCHMARK_ATTEMPTS_PER_BUG="8"
-
-python -m harness.validate_bugs                        # 25 training + 5 hold-out bugs must BREAK
-python -m harness.live_heal --bug-id syntax-001 --creator mock   # Beat 1 heal demo (no GPU)
-python -m scripts.creator_e2e --bug-id syntax-001 --live       # one bug through live Creator (needs vLLM)
-python -m harness.runner --creator fake --fresh        # stub Creator → real Judge → metrics + chart
-python -m harness.runner --creator mock --fresh        # Creator pipeline (mock fix, no GPU) → real Judge
-python -m harness.runner --creator live --fresh        # real Creator on vLLM → calibrate 20-45% (needs GPU box)
-python -m harness.holdout_eval                         # one-shot hold-out eval (run once, at the end)
-python -m harness.chart                                # regenerate chart from metrics.jsonl
+pytest
+python -m harness.validate_bugs
+python -m harness.live_heal --bug-id syntax-001 --creator mock
+python -m harness.runner --creator fake --fresh
 ```
 
 Creator backends: `fake` (self-contained stub), `mock` (Creator pipeline + canned fix, no GPU), `live` (Qwen2.5-Coder-7B on vLLM). The Creator normalizes fix diffs with `--- a/` / `+++ b/` headers before they reach the Judge (`creator/diff_utils.py`). The Judge verdict is always the deterministic build+tests gate.
 
-### AMD notebook (hosted JupyterLab)
+### Live run on AMD AI Notebooks
 
-GPU access for the hackathon is via [AMD AI Notebooks](https://notebooks.amd.com/hackathon) — run vLLM and the harness on the **same box** over `localhost` (no public IP). Inside the notebook terminal:
+The run used an **AMD Radeon Pro W7900 (`gfx1100`, 48 GB)** through [AMD AI Notebooks](https://notebooks.amd.com/hackathon), with ROCm and vLLM serving `Qwen/Qwen2.5-Coder-7B-Instruct`. vLLM and the harness run on the same JupyterLab machine over `localhost:8090`; Fireworks handles the lower-volume reflection call.
 
 ```bash
 git clone https://github.com/joshnaim1/malatang && cd malatang
-bash scripts/notebook_setup.sh    # deps + vLLM on :8090 + health check
+cp .env.example .env              # fill Fireworks values; never commit
+npm install
+bash scripts/notebook_setup.sh
+python -m scripts.check_vllm
 python -m harness.live_heal --bug-id syntax-001 --creator live
 python -m harness.runner --creator live --fresh
+python -m scripts.audit_wins
+python -m scripts.reflect --iteration 0
+python -m harness.runner --creator live --start-iteration 1
+
+# Repeat reflect + runner for subsequent iterations, then evaluate hold-out once:
+python -m scripts.audit_wins
+python -m harness.holdout_eval --creator live
+python -m harness.chart
 ```
 
-See `scripts/notebook_setup.sh` and `.env.example` for required env vars (vLLM + Fireworks).
+`scripts.reflect --dry-run` validates plumbing but is explicitly not evidence of self-improvement. Hold-out results are isolated in `results/holdout.jsonl`; they never enter the training curve.
 
 ---
 
@@ -119,7 +116,7 @@ See `scripts/notebook_setup.sh` and `.env.example` for required env vars (vLLM +
 | `creator/` | Creator pipeline (Observer → Fix → mutation); diff normalization |
 | `harness/` | Sandbox, Judge, Runner, chart (Python) |
 | `scripts/` | Notebook bootstrap, vLLM/Fireworks health checks, Creator e2e |
-| `results/` | `metrics.jsonl` + `pass_rate.png` (evidence artifacts) |
+| `results/` | Training `metrics.jsonl`, isolated `holdout.jsonl`, and `pass_rate.png` |
 
 ---
 
@@ -135,8 +132,9 @@ See `scripts/notebook_setup.sh` and `.env.example` for required env vars (vLLM +
 
 | Component | Role |
 |---|---|
-| AMD GPU + vLLM | Creator fix-generation (Qwen2.5-Coder-7B); hackathon via [AMD AI Notebooks](https://notebooks.amd.com/hackathon) or MI300X droplet |
-| Fireworks API | Reflection + playbook rewriting |
+| AMD Radeon Pro W7900 (`gfx1100`, 48 GB) | Hackathon GPU through AMD AI Notebooks |
+| ROCm + vLLM + Qwen2.5-Coder-7B | Self-hosted Creator fix generation |
+| Fireworks API | Bounded reflection + playbook rewriting |
 | This repo | Deterministic sandbox verification + benchmark Runner |
 
 ---

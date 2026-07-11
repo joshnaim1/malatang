@@ -1,0 +1,31 @@
+{
+  "iteration": 0,
+  "bug_id": "contaminated-win",
+  "bug_class": "syntax",
+  "attempt": 1,
+  "accepted": true,
+  "mutation": {
+    "mutation": {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "bug_id": "contaminated-win",
+      "attempt": 1,
+      "type": "code",
+      "trigger": "benchmark",
+      "file": "lib/stats.test.js",
+      "diff": "--- a/lib/stats.test.js\n+++ b/lib/stats.test.js\n@@ -1 +1 @@\n-old\n+new\n",
+      "reasoning": "fixture",
+      "model": "fixture"
+    }
+  },
+  "verdict": {
+    "bug_id": "contaminated-win",
+    "attempt": 1,
+    "accepted": true,
+    "build_passed": true,
+    "tests_passed": true,
+    "regression_detected": false,
+    "wall_time_s": 0.1,
+    "notes": "fixture accepted"
+  }
+}

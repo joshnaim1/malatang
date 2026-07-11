@@ -1,0 +1,31 @@
+{
+  "iteration": 0,
+  "bug_id": "syntax-004",
+  "bug_class": "syntax",
+  "attempt": 6,
+  "accepted": false,
+  "mutation": {
+    "mutation": {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "bug_id": "syntax-004",
+      "attempt": 6,
+      "type": "code",
+      "trigger": "benchmark",
+      "file": "lib/format.js",
+      "diff": "--- a/lib/format.js\n+++ b/lib/format.js\n@@ -1 +1 @@\n-old\n+new\n",
+      "reasoning": "changed wrong delimiter",
+      "model": "fixture"
+    }
+  },
+  "verdict": {
+    "bug_id": "syntax-004",
+    "attempt": 6,
+    "accepted": false,
+    "build_passed": false,
+    "tests_passed": false,
+    "regression_detected": false,
+    "wall_time_s": 0.1,
+    "notes": "tests failed: expected formatted output"
+  }
+}

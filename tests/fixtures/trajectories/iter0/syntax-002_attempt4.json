@@ -1,0 +1,31 @@
+{
+  "iteration": 0,
+  "bug_id": "syntax-002",
+  "bug_class": "syntax",
+  "attempt": 4,
+  "accepted": false,
+  "mutation": {
+    "mutation": {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "bug_id": "syntax-002",
+      "attempt": 4,
+      "type": "code",
+      "trigger": "benchmark",
+      "file": "src/App.jsx",
+      "diff": "--- a/src/App.jsx\n+++ b/src/App.jsx\n@@ -1 +1 @@\n-old\n+new\n",
+      "reasoning": "tried unrelated context",
+      "model": "fixture"
+    }
+  },
+  "verdict": {
+    "bug_id": "syntax-002",
+    "attempt": 4,
+    "accepted": false,
+    "build_passed": false,
+    "tests_passed": false,
+    "regression_detected": false,
+    "wall_time_s": 0.1,
+    "notes": "fix diff did not apply: patch failed"
+  }
+}
