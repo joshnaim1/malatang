@@ -59,6 +59,8 @@ def run_holdout(
     bugs = load_holdout_bugs()
     attempts_per_bug = benchmark_attempts_per_bug()
     backend = get_backend(creator)
+    latest = latest_training_metric()
+    evaluation_iteration = int(latest["iteration"]) if latest else 0
     requested_version = playbook_version or default_playbook_version()
     loaded_playbook_version = backend.prepare_iteration(requested_version)
     observe_failure = creator == "live"
@@ -82,7 +84,7 @@ def run_holdout(
                 try:
                     mutation = backend.create_mutation(
                         bug,
-                        iteration=0,
+                        iteration=evaluation_iteration,
                         playbook_version=loaded_playbook_version,
                         attempt=attempt,
                         failing_output=failing_output,
@@ -90,7 +92,7 @@ def run_holdout(
                 except Exception as exc:  # noqa: BLE001 - score as a rejected attempt
                     mutation = creator_error_mutation(
                         bug,
-                        iteration=0,
+                        iteration=evaluation_iteration,
                         playbook_version=loaded_playbook_version,
                         attempt=attempt,
                         model_label=getattr(backend, "name", "creator"),
@@ -99,7 +101,7 @@ def run_holdout(
                 verdict = verify_mutation(mutation, bug_patch)
                 record_attempt(
                     traj_dir,
-                    iteration=0,
+                    iteration=evaluation_iteration,
                     bug_id=bug_id,
                     bug_class=bug_class,
                     attempt=attempt,
@@ -120,10 +122,9 @@ def run_holdout(
 
     bugs_total = len(bugs)
     pass_rate = round(bugs_passed / bugs_total, 4) if bugs_total else 0.0
-    latest = latest_training_metric()
     record = {
         "eval": "holdout",
-        "iteration": latest.get("iteration") if latest else None,
+        "iteration": evaluation_iteration,
         "playbook_version": loaded_playbook_version,
         "model_checkpoint": model_checkpoint,
         "bugs_total": bugs_total,
