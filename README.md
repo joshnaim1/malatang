@@ -83,14 +83,28 @@ $env:BENCHMARK_ATTEMPTS_PER_BUG="8"
 
 python -m harness.validate_bugs                        # 25 training + 5 hold-out bugs must BREAK
 python -m harness.live_heal --bug-id syntax-001 --creator mock   # Beat 1 heal demo (no GPU)
+python -m scripts.creator_e2e --bug-id syntax-001 --live       # one bug through live Creator (needs vLLM)
 python -m harness.runner --creator fake --fresh        # stub Creator → real Judge → metrics + chart
 python -m harness.runner --creator mock --fresh        # Creator pipeline (mock fix, no GPU) → real Judge
-python -m harness.runner --creator live --fresh        # real Creator on vLLM → calibrate 20-45% (needs droplet)
+python -m harness.runner --creator live --fresh        # real Creator on vLLM → calibrate 20-45% (needs GPU box)
 python -m harness.holdout_eval                         # one-shot hold-out eval (run once, at the end)
 python -m harness.chart                                # regenerate chart from metrics.jsonl
 ```
 
-Creator backends: `fake` (self-contained stub), `mock` (Person A's pipeline, no GPU), `live` (vLLM on MI300X). The Judge verdict is always the deterministic build+tests gate.
+Creator backends: `fake` (self-contained stub), `mock` (Creator pipeline + canned fix, no GPU), `live` (Qwen2.5-Coder-7B on vLLM). The Creator normalizes fix diffs with `--- a/` / `+++ b/` headers before they reach the Judge (`creator/diff_utils.py`). The Judge verdict is always the deterministic build+tests gate.
+
+### AMD notebook (hosted JupyterLab)
+
+GPU access for the hackathon is via [AMD AI Notebooks](https://notebooks.amd.com/hackathon) — run vLLM and the harness on the **same box** over `localhost` (no public IP). Inside the notebook terminal:
+
+```bash
+git clone https://github.com/joshnaim1/malatang && cd malatang
+bash scripts/notebook_setup.sh    # deps + vLLM on :8090 + health check
+python -m harness.live_heal --bug-id syntax-001 --creator live
+python -m harness.runner --creator live --fresh
+```
+
+See `scripts/notebook_setup.sh` and `.env.example` for required env vars (vLLM + Fireworks).
 
 ---
 
@@ -102,7 +116,9 @@ Creator backends: `fake` (self-contained stub), `mock` (Person A's pipeline, no 
 | `benchmark/bugs/` | 25 training bugs (patch files) |
 | `benchmark/holdout/` | 5 hold-out bugs (eval only, not in training loop) |
 | `contracts/` | Frozen JSON schemas + examples |
+| `creator/` | Creator pipeline (Observer → Fix → mutation); diff normalization |
 | `harness/` | Sandbox, Judge, Runner, chart (Python) |
+| `scripts/` | Notebook bootstrap, vLLM/Fireworks health checks, Creator e2e |
 | `results/` | `metrics.jsonl` + `pass_rate.png` (evidence artifacts) |
 
 ---
@@ -119,8 +135,8 @@ Creator backends: `fake` (self-contained stub), `mock` (Person A's pipeline, no 
 
 | Component | Role |
 |---|---|
-| MI300X + vLLM | Creator fix-generation (Qwen2.5-Coder-7B) |
-| Fireworks API | Reflection + optional Judge commentary |
+| AMD GPU + vLLM | Creator fix-generation (Qwen2.5-Coder-7B); hackathon via [AMD AI Notebooks](https://notebooks.amd.com/hackathon) or MI300X droplet |
+| Fireworks API | Reflection + playbook rewriting |
 | This repo | Deterministic sandbox verification + benchmark Runner |
 
 ---
