@@ -1,0 +1,31 @@
+{
+  "iteration": 0,
+  "bug_id": "clean-win",
+  "bug_class": "syntax",
+  "attempt": 1,
+  "accepted": true,
+  "mutation": {
+    "mutation": {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "bug_id": "clean-win",
+      "attempt": 1,
+      "type": "code",
+      "trigger": "benchmark",
+      "file": "src/App.jsx",
+      "diff": "--- a/src/App.jsx\n+++ b/src/App.jsx\n@@ -1 +1 @@\n-old\n+new\n",
+      "reasoning": "fixture",
+      "model": "fixture"
+    }
+  },
+  "verdict": {
+    "bug_id": "clean-win",
+    "attempt": 1,
+    "accepted": true,
+    "build_passed": true,
+    "tests_passed": true,
+    "regression_detected": false,
+    "wall_time_s": 0.1,
+    "notes": "fixture accepted"
+  }
+}
