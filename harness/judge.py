@@ -71,6 +71,9 @@ def verify_mutation(
             try:
                 apply_unified_diff(workdir, fix_diff, label="fix")
             except RuntimeError as exc:
+                # A contract-valid diff that will not apply is a failed attempt,
+                # not a harness crash. Score it as a clean reject so unattended
+                # benchmark runs never abort on malformed Creator output.
                 return validate_verdict(
                     {
                         "bug_id": bug_id,
