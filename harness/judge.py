@@ -165,8 +165,20 @@ def verify_mutation(
             try:
                 apply_unified_diff(workdir, fix_diff, label="fix")
             except RuntimeError as exc:
-                return _rejected_verdict(
-                    bug_id, attempt, _summarize_apply_failure(exc)
+                # A contract-valid diff that will not apply is a failed attempt,
+                # not a harness crash. Score it as a clean reject so unattended
+                # benchmark runs never abort on malformed Creator output.
+                return validate_verdict(
+                    {
+                        "bug_id": bug_id,
+                        "attempt": attempt,
+                        "accepted": False,
+                        "build_passed": False,
+                        "tests_passed": False,
+                        "regression_detected": False,
+                        "wall_time_s": 0.0,
+                        "notes": _summarize_apply_failure(exc),
+                    }
                 )
         gate = run_build_and_tests(workdir)
     finally:
