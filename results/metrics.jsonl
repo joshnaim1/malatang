@@ -1,1 +1,2 @@
-{"iteration": 0, "playbook_version": "v0", "model_checkpoint": "base", "bugs_total": 25, "bugs_passed": 1, "pass_rate": 0.04, "attempts_per_bug": 1, "total_llm_calls": 25, "gpu_hours_consumed": 0.0}
+{"iteration": 0, "playbook_version": "v0", "model_checkpoint": "base", "bugs_total": 25, "bugs_passed": 10, "pass_rate": 0.4, "attempts_per_bug": 8, "total_llm_calls": 139, "gpu_hours_consumed": 0.0}
+{"iteration": 1, "playbook_version": "v1", "model_checkpoint": "base", "bugs_total": 25, "bugs_passed": 10, "pass_rate": 0.4, "attempts_per_bug": 8, "total_llm_calls": 142, "gpu_hours_consumed": 0.0}
