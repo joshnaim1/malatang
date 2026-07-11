@@ -8,6 +8,7 @@ venv/
 results/*
 !results/.gitkeep
 !results/metrics.jsonl
+!results/holdout.jsonl
 !results/pass_rate.png
 trajectories/*
 !trajectories/.gitkeep

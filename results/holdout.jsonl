@@ -1,0 +1,1 @@
+{"eval": "holdout", "iteration": 3, "playbook_version": "v3", "model_checkpoint": "base", "bugs_total": 5, "bugs_passed": 3, "pass_rate": 0.6, "attempts_per_bug": 8, "total_llm_calls": 28}
