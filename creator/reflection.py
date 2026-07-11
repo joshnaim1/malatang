@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from creator import config, llm, playbook
@@ -44,8 +45,12 @@ class IterationTrajectories:
         return len(self.wins) + len(self.failures)
 
 
-def load_iteration_trajectories(iteration: int) -> IterationTrajectories:
-    iter_dir = TRAJECTORIES_DIR / f"iter{iteration}"
+def load_iteration_trajectories(
+    iteration: int,
+    trajectories_dir: Path | None = None,
+) -> IterationTrajectories:
+    root = trajectories_dir or TRAJECTORIES_DIR
+    iter_dir = root / f"iter{iteration}"
     if not iter_dir.exists():
         raise FileNotFoundError(f"no trajectories for iteration {iteration}: {iter_dir}")
     wins: list[dict[str, Any]] = []
@@ -291,12 +296,17 @@ def validate_generated_playbook(new_text: str, current_playbook: str) -> str:
     return normalized + "\n"
 
 
-async def reflect(iteration: int, *, dry_run: bool = False) -> tuple[str, str]:
+async def reflect(
+    iteration: int,
+    *,
+    dry_run: bool = False,
+    trajectories_dir: Path | None = None,
+) -> tuple[str, str]:
     """Rewrite the playbook from iteration ``iteration``'s trajectories.
 
     Returns ``(next_version, output_path)``.
     """
-    traj = load_iteration_trajectories(iteration)
+    traj = load_iteration_trajectories(iteration, trajectories_dir)
     current_version = playbook.latest_version()
     current_playbook = playbook.load_playbook(current_version)
     next_version = playbook.next_version(current_version)
