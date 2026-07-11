@@ -363,6 +363,8 @@ Both build against the frozen JSON contracts (Section 5) and mock the other side
 - [ ] Decide JS-only benchmark vs JS+Python split (JS-only simplifies sandbox; Python adds generality story) - default JS-only unless Person B objects by Tuesday
 - [x] Dark-mode / free-text feature path: **cut** from MVP (2026-07-06)
 - [x] Per-mutation scalar reward: **replaced** with binary accept + iteration-level pass rate (2026-07-06)
+- [x] Infrastructure pivot: the live hackathon run used **AMD AI Notebooks on an AMD Radeon Pro W7900 (`gfx1100`, 48 GB) with ROCm + vLLM**, not the originally planned MI300X droplet (2026-07-10). Existing infrastructure sections above remain historical planning context.
+- [x] Hold-out evidence is isolated in **`results/holdout.jsonl`** so the one-shot generalization result never pollutes the training curve in `results/metrics.jsonl` (2026-07-10).
 
 ## 18. References
 
