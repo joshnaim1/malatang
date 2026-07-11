@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shlex
 from typing import Any
 
 from harness.config import REPO_ROOT
@@ -15,6 +16,76 @@ from harness.sandbox import (
     clone_repo_to_temp,
     run_build_and_tests,
 )
+
+PROTECTED_FILENAMES = {
+    "package.json",
+    "package-lock.json",
+    "vite.config.js",
+}
+PROTECTED_TOP_LEVEL_DIRS = {
+    "harness",
+    "creator",
+    "contracts",
+    "benchmark",
+    "playbook",
+    "results",
+    "trajectories",
+    "scripts",
+}
+
+
+def _normalize_diff_path(raw: str) -> str | None:
+    """Normalize one path token from a git/unified diff."""
+    path = raw.strip().split("\t", 1)[0].strip()
+    if not path or path == "/dev/null":
+        return None
+    if len(path) >= 2 and path[0] == path[-1] == '"':
+        path = path[1:-1]
+    if path.startswith(("a/", "b/")):
+        path = path[2:]
+    while path.startswith("./"):
+        path = path[2:]
+    return path.replace("\\", "/")
+
+
+def parse_touched_paths(diff_text: str) -> set[str]:
+    """Return every file path declared by a unified diff.
+
+    Both ``diff --git`` metadata and ``---``/``+++`` file headers are parsed so
+    the protected-files gate and the offline win audit share one source of truth.
+    """
+    paths: set[str] = set()
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git "):
+            try:
+                parts = shlex.split(line)
+            except ValueError:
+                parts = line.split()
+            for raw in parts[2:4]:
+                normalized = _normalize_diff_path(raw)
+                if normalized:
+                    paths.add(normalized)
+        elif line.startswith("--- ") or line.startswith("+++ "):
+            normalized = _normalize_diff_path(line[4:])
+            if normalized:
+                paths.add(normalized)
+    return paths
+
+
+def is_protected_path(path: str) -> bool:
+    """Whether a Creator fix is forbidden from touching ``path``."""
+    normalized = path.replace("\\", "/").lstrip("/")
+    parts = [part for part in normalized.split("/") if part not in {"", "."}]
+    if not parts or ".." in parts:
+        return True
+    if parts[0] in PROTECTED_TOP_LEVEL_DIRS:
+        return True
+    name = parts[-1]
+    return name.endswith(".test.js") or name in PROTECTED_FILENAMES
+
+
+def protected_paths_in_diff(diff_text: str) -> set[str]:
+    return {path for path in parse_touched_paths(diff_text) if is_protected_path(path)}
 
 
 def _summarize_gate(gate: GateResult) -> str:
@@ -51,6 +122,21 @@ def _detect_regression(gate: GateResult) -> bool:
     return gate.build_passed and not gate.tests_passed
 
 
+def _rejected_verdict(bug_id: str, attempt: int, notes: str) -> dict[str, Any]:
+    return validate_verdict(
+        {
+            "bug_id": bug_id,
+            "attempt": attempt,
+            "accepted": False,
+            "build_passed": False,
+            "tests_passed": False,
+            "regression_detected": False,
+            "wall_time_s": 0.0,
+            "notes": notes,
+        }
+    )
+
+
 def verify_mutation(
     mutation_payload: dict[str, Any],
     bug_patch_text: str,
@@ -64,6 +150,14 @@ def verify_mutation(
     attempt = mutation["attempt"]
     fix_diff = mutation["diff"]
 
+    protected = sorted(protected_paths_in_diff(fix_diff))
+    if protected:
+        return _rejected_verdict(
+            bug_id,
+            attempt,
+            f"protected file rejected: {', '.join(protected)}",
+        )
+
     workdir = clone_repo_to_temp(repo_root)
     try:
         apply_unified_diff(workdir, bug_patch_text, label="bug")
@@ -71,17 +165,8 @@ def verify_mutation(
             try:
                 apply_unified_diff(workdir, fix_diff, label="fix")
             except RuntimeError as exc:
-                return validate_verdict(
-                    {
-                        "bug_id": bug_id,
-                        "attempt": attempt,
-                        "accepted": False,
-                        "build_passed": False,
-                        "tests_passed": False,
-                        "regression_detected": False,
-                        "wall_time_s": 0.0,
-                        "notes": _summarize_apply_failure(exc),
-                    }
+                return _rejected_verdict(
+                    bug_id, attempt, _summarize_apply_failure(exc)
                 )
         gate = run_build_and_tests(workdir)
     finally:

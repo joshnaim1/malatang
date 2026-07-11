@@ -21,6 +21,10 @@ from typing import Any, Protocol
 class CreatorBackend(Protocol):
     name: str
 
+    def prepare_iteration(self, playbook_version: str) -> str:
+        """Load iteration state and return the version actually loaded."""
+        ...
+
     def create_mutation(
         self,
         bug: dict[str, str],
@@ -38,6 +42,9 @@ class FakeCreatorBackend:
     """Self-contained stub; no Creator-half dependency."""
 
     name = "fake"
+
+    def prepare_iteration(self, playbook_version: str) -> str:
+        return playbook_version
 
     def create_mutation(
         self,
@@ -66,6 +73,9 @@ class MockCreatorBackend:
     """Person A's pipeline stages with the mock (no-GPU) fix stage."""
 
     name = "mock"
+
+    def prepare_iteration(self, playbook_version: str) -> str:
+        return playbook_version
 
     def create_mutation(
         self,
@@ -108,18 +118,24 @@ class LiveCreatorBackend:
         from openai import AsyncOpenAI
 
         from creator import config as creator_config
-        from creator import playbook
-
         self._asyncio = asyncio
         self._loop = asyncio.new_event_loop()
         self._model = creator_config.creator_model()
         self._temperature = creator_config.benchmark_temperature()
-        self._playbook_version = playbook.latest_version()
-        self._playbook_text = playbook.load_playbook(self._playbook_version)
+        self._playbook_version: str | None = None
+        self._playbook_text: str | None = None
         self._client = AsyncOpenAI(
             base_url=creator_config.vllm_base_url(),
             api_key=creator_config.vllm_api_key(),
         )
+
+    def prepare_iteration(self, playbook_version: str) -> str:
+        """Load the exact requested playbook once per benchmark iteration."""
+        from creator import playbook
+
+        self._playbook_text = playbook.load_playbook(playbook_version)
+        self._playbook_version = playbook_version
+        return self._playbook_version
 
     def create_mutation(
         self,
@@ -133,6 +149,10 @@ class LiveCreatorBackend:
         from creator.bug_context import build_bug_context
         from creator.pipeline import run_attempt
 
+        if self._playbook_version != playbook_version or self._playbook_text is None:
+            self.prepare_iteration(playbook_version)
+        assert self._playbook_version is not None
+        assert self._playbook_text is not None
         ctx = build_bug_context(bug["id"], failing_output=failing_output)
         return self._loop.run_until_complete(
             run_attempt(
@@ -141,7 +161,7 @@ class LiveCreatorBackend:
                 model=self._model,
                 model_label=self._model,
                 playbook_text=self._playbook_text,
-                playbook_version=playbook_version,
+                playbook_version=self._playbook_version,
                 iteration=iteration,
                 attempt=attempt,
                 temperature=self._temperature,

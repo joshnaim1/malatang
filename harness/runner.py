@@ -93,6 +93,7 @@ def run_iteration(
     bugs = load_training_bugs()
     attempts_per_bug = benchmark_attempts_per_bug()
     creator = backend if backend is not None else get_backend("fake")
+    loaded_playbook_version = creator.prepare_iteration(playbook_version)
     traj_dir = iteration_dir(iteration)
     bugs_passed = 0
     total_llm_calls = 0
@@ -110,7 +111,7 @@ def run_iteration(
                 mutation = creator.create_mutation(
                     bug,
                     iteration=iteration,
-                    playbook_version=playbook_version,
+                    playbook_version=loaded_playbook_version,
                     attempt=attempt,
                     failing_output=failing_output,
                 )
@@ -118,7 +119,7 @@ def run_iteration(
                 mutation = _creator_error_mutation(
                     bug,
                     iteration=iteration,
-                    playbook_version=playbook_version,
+                    playbook_version=loaded_playbook_version,
                     attempt=attempt,
                     model_label=getattr(creator, "name", "creator"),
                     reason=f"creator failed: {type(exc).__name__}",
@@ -144,7 +145,7 @@ def run_iteration(
     pass_rate = round(bugs_passed / bugs_total, 4) if bugs_total else 0.0
     record = {
         "iteration": iteration,
-        "playbook_version": playbook_version,
+        "playbook_version": loaded_playbook_version,
         "model_checkpoint": model_checkpoint,
         "bugs_total": bugs_total,
         "bugs_passed": bugs_passed,
