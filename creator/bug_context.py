@@ -26,6 +26,8 @@ from creator.config import REPO_ROOT
 BENCHMARK_DIR = REPO_ROOT / "benchmark"
 TRAINING_MANIFEST = BENCHMARK_DIR / "manifest.json"
 TRAINING_BUGS_DIR = BENCHMARK_DIR / "bugs"
+HOLDOUT_MANIFEST = BENCHMARK_DIR / "holdout" / "manifest.json"
+HOLDOUT_BUGS_DIR = BENCHMARK_DIR / "holdout"
 
 _PLUS_FILE_RE = re.compile(r"^\+\+\+ b/(.+)$", re.MULTILINE)
 
@@ -49,12 +51,18 @@ def _strip_patch_comments(patch_text: str) -> str:
     return "\n".join(lines) + ("\n" if lines else "")
 
 
-def _load_manifest_entry(bug_id: str) -> dict[str, str]:
-    data = json.loads(TRAINING_MANIFEST.read_text(encoding="utf-8"))
-    for bug in data["bugs"]:
-        if bug["id"] == bug_id:
-            return bug
-    raise KeyError(f"bug_id not found in {TRAINING_MANIFEST}: {bug_id}")
+def _load_manifest_entry(bug_id: str) -> tuple[dict[str, str], Path]:
+    for manifest, bugs_dir in (
+        (TRAINING_MANIFEST, TRAINING_BUGS_DIR),
+        (HOLDOUT_MANIFEST, HOLDOUT_BUGS_DIR),
+    ):
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        for bug in data["bugs"]:
+            if bug["id"] == bug_id:
+                return bug, bugs_dir
+    raise KeyError(
+        f"bug_id not found in training or hold-out manifests: {bug_id}"
+    )
 
 
 def _target_file_from_patch(patch_text: str) -> str:
@@ -91,9 +99,9 @@ def _apply_bug_patch(file_path: str, patch_text: str) -> str:
 
 
 def build_bug_context(bug_id: str, failing_output: str | None = None) -> BugContext:
-    entry = _load_manifest_entry(bug_id)
+    entry, bugs_dir = _load_manifest_entry(bug_id)
     patch_text = _strip_patch_comments(
-        (TRAINING_BUGS_DIR / entry["patch"]).read_text(encoding="utf-8")
+        (bugs_dir / entry["patch"]).read_text(encoding="utf-8")
     )
     file_path = _target_file_from_patch(patch_text)
     buggy_source = _apply_bug_patch(file_path, patch_text)

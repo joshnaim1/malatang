@@ -33,7 +33,7 @@ from harness.trajectory import iteration_dir, record_attempt, write_summary
 METRICS_PATH = REPO_ROOT / "results" / "metrics.jsonl"
 
 
-def _creator_error_mutation(
+def creator_error_mutation(
     bug: dict[str, str],
     *,
     iteration: int,
@@ -116,7 +116,7 @@ def run_iteration(
                     failing_output=failing_output,
                 )
             except Exception as exc:  # noqa: BLE001 — score Creator failures as attempts
-                mutation = _creator_error_mutation(
+                mutation = creator_error_mutation(
                     bug,
                     iteration=iteration,
                     playbook_version=loaded_playbook_version,
