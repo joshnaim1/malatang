@@ -78,6 +78,19 @@ def fireworks_model() -> str:
     return require_env("FIREWORKS_MODEL")
 
 
+def fireworks_timeout_s() -> float:
+    raw = optional_env("FIREWORKS_TIMEOUT_S", "600")
+    try:
+        timeout = float(raw)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Environment variable FIREWORKS_TIMEOUT_S must be a number, got: {raw!r}"
+        ) from exc
+    if timeout <= 0:
+        raise RuntimeError("Environment variable FIREWORKS_TIMEOUT_S must be positive")
+    return timeout
+
+
 # --- Sampling ---
 
 def benchmark_temperature() -> float:

@@ -1,0 +1,31 @@
+{
+  "iteration": 0,
+  "bug_id": "syntax-003",
+  "bug_class": "syntax",
+  "attempt": 5,
+  "accepted": false,
+  "mutation": {
+    "mutation": {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "bug_id": "syntax-003",
+      "attempt": 5,
+      "type": "code",
+      "trigger": "benchmark",
+      "file": "lib/stats.js",
+      "diff": "--- a/lib/stats.js\n+++ b/lib/stats.js\n@@ -1 +1 @@\n-old\n+new\n",
+      "reasoning": "brace remains unbalanced",
+      "model": "fixture"
+    }
+  },
+  "verdict": {
+    "bug_id": "syntax-003",
+    "attempt": 5,
+    "accepted": false,
+    "build_passed": false,
+    "tests_passed": false,
+    "regression_detected": false,
+    "wall_time_s": 0.1,
+    "notes": "build failed: unexpected token"
+  }
+}
