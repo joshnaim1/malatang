@@ -61,6 +61,40 @@ Team split and runbooks: [`SOW.md`](SOW.md) · Judge/harness guide: [`JudgeREADM
 
 ---
 
+## Web demo (Vercel)
+
+`web/` is a **static, self-contained replay showcase** — no Python server, no live
+runner — designed to be hosted on Vercel so anyone can visualize the measured
+improvement curve. It loads one committed payload (`web/data/replay.json`) and
+replays it client-side: press **Play** (or **Step**/scrub) to watch pass rate
+build iteration-by-iteration, with the pass-rate curve, per-iteration table,
+frozen-benchmark grid, and playbook (v0→v3) evolution all revealed from real,
+committed evidence.
+
+```bash
+# Regenerate the payload from committed evidence (results/ + benchmark/ + playbook/)
+python -m scripts.build_replay_data
+
+# Preview locally
+cd web && python -m http.server 8793      # → http://127.0.0.1:8793/
+```
+
+Deploy: point Vercel at this repo. [`vercel.json`](vercel.json) sets the output
+directory to `web/` and (best-effort) regenerates `replay.json` at build time;
+the payload is also committed so the deploy works even without Python in the
+build image.
+
+> **Honest by construction.** The replay uses real per-iteration pass rates and
+> the real 25-bug benchmark. Per-*bug* pass/fail was not committed (trajectories
+> were gitignored during the AMD run — see `docs/PRESENTATION_RUNBOOK.md`), so the
+> grid fills to the real pass *count* and never claims which specific bug passed.
+>
+> To run **your own** iterations (needs a GPU/vLLM Creator), use the local live
+> dashboard instead: `python -m scripts.dashboard_server`. Vercel can't host the
+> GPU benchmark runner; this static site visualizes recorded runs.
+
+---
+
 ## Main code path
 
 | Step | What happens | Code |
