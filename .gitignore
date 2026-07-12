@@ -10,6 +10,8 @@ results/*
 !results/metrics.jsonl
 !results/holdout.jsonl
 !results/pass_rate.png
+!results/evidence/
+!results/evidence/**
 trajectories/*
 !trajectories/.gitkeep
 .DS_Store

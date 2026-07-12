@@ -1,0 +1,2 @@
+﻿iter0: wins checked=1, contaminated=0
+PASS: all accepted wins touch only allowed source files.
