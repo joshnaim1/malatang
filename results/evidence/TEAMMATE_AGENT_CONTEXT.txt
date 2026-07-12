@@ -1,0 +1,120 @@
+Malatang benchmark evidence — context for teammate agents
+=========================================================
+Date: 2026-07-12
+Branch: evidence-integrity
+PR: https://github.com/joshnaim1/malatang/pull/11
+Authoritative doc: docs/BENCHMARK_EVIDENCE_PROVENANCE.md
+
+WHAT THIS PR DOES
+-----------------
+Documents benchmark evidence honestly. No playbooks, metrics, or trajectories were
+repaired, regenerated, or invented. Adds:
+
+- docs/BENCHMARK_EVIDENCE_PROVENANCE.md (hardware, commands, SHA-256, integrity gaps)
+- results/evidence/SHA256SUMS.txt, audit_wins_*.txt
+- scripts/notebook_export_evidence.sh (run on AMD notebook to archive trajectories)
+- scripts/import_evidence_bundle.py (laptop import + SHA verify)
+- README truth pass (non-monotonic curve, v1 dry-run, trajectories not in git)
+- tests/test_evidence_provenance.py
+
+WHAT WE RAN ON THE AMD NOTEBOOK (2026-07-12)
+--------------------------------------------
+  cd /workspace/malatang
+  git -c http.sslVerify=false fetch origin evidence-integrity
+  git -c http.sslVerify=false pull --no-rebase origin evidence-integrity
+  bash scripts/notebook_export_evidence.sh
+
+Export succeeded. Key outputs still on notebook:
+
+  results/evidence/trajectories-archive.tar.gz
+    SHA-256: e8a7554546985a958dd0f4947eb6e8a7e771f58f681d1f8b51d258aa77e5c9c8
+
+  results/metrics.jsonl (notebook)
+    SHA-256: d8616b9ea66f496ad556371390a615974c35e73709cdc4c2b9636603746b12e8
+    (differs from GitHub copy — use notebook version in follow-up commit)
+
+  results/holdout.jsonl (notebook)
+    SHA-256: e2e2bdbf3cfc3f8353450a39e0115d81de7f625f37e93d38912231cda5f86b51
+    (differs from GitHub copy — use notebook version in follow-up commit)
+
+  results/pass_rate.png — matches GitHub (6449bce7…)
+
+audit_wins on notebook (0 contamination on all iterations):
+
+  iter0: 11 wins   | metrics bugs_passed: 10
+  iter1: 14 wins   | metrics bugs_passed: 10
+  iter2: 9 wins    | metrics bugs_passed: 9  (match)
+  iter3: 17 wins   | metrics bugs_passed: 12
+  holdout: 3 wins   | metrics: 3             (match)
+
+Extra wins vs metrics = accepted trajectory JSON files from reruns in same
+trajectories/iterN/ dirs, not unique bugs_passed. Documented; not a contamination issue.
+
+BENCHMARK NUMBERS (committed metrics — may update after notebook sync)
+----------------------------------------------------------------------
+Training (25 bugs): 40% → 40% → 36% → 48% (NOT monotonic)
+Hold-out (5 bugs): 60% (3/5) with playbook v3
+
+Playbook mapping:
+  iter0 → v0 (hand-written)
+  iter1 → v1 (DRY-RUN reflection, NOT Fireworks)
+  iter2 → v2 (Fireworks, TRUNCATED in repo)
+  iter3 → v3 (Fireworks, TRUNCATED in repo)
+
+INTEGRITY FINDINGS (do not repair without explicit approval)
+------------------------------------------------------------
+1. v1 is dry-run, not Fireworks. Header says "11 wins / 183 failures"; committed
+   iter-0 metrics say 10 passed / 139 LLM calls. Different snapshots; both documented.
+
+2. v2.md truncated — ends inside unclosed ```diff fence (line 74).
+   v3.md truncated — ends mid-sentence in wrong-api section (line 58).
+   GitHub copies are BYTE-IDENTICAL to notebook (SHA match). Truncation predates transfer.
+
+3. Trajectories are gitignored. Not in repo until follow-up commit after file transfer.
+
+4. holdout.jsonl in repo is aggregate summary only (no per_bug array).
+
+BASE64 CHAT PASTE FAILED (2026-07-12)
+-------------------------------------
+Aaron pasted base64 of evidence-bundle.tgz in Cursor chat. Import failed:
+
+- Shell prompt concatenated at end (root@hf-450-ff0e177b:…)
+- Gzip prefix mangled (H4sI → /gsYn) — common on large chat pastes
+- zlib invalid after repair attempts; SHA never matched e8a75545…
+
+Do NOT retry large base64 in chat. Use Jupyter Download or scp.
+
+PENDING FOLLOW-UP (after PR #11 merges or on same branch)
+---------------------------------------------------------
+1. Transfer from notebook to laptop:
+     tar czf /tmp/evidence-bundle.tgz \
+       results/evidence/trajectories-archive.tar.gz \
+       results/evidence/audit_wins_notebook.txt \
+       results/metrics.jsonl \
+       results/holdout.jsonl
+   Download /tmp/evidence-bundle.tgz via Jupyter file browser.
+
+2. On laptop:
+     python scripts/import_evidence_bundle.py <path>/evidence-bundle.tgz --extract-trajectories
+     python -m scripts.audit_wins
+   Verify trajectories-archive SHA = e8a75545…
+
+3. Commit trajectories-archive.tar.gz + notebook metrics/holdout + audit output.
+   Update SHA256SUMS.txt. Do NOT manually repair v2/v3 playbooks.
+
+NOTEBOOK GIT NOTES
+------------------
+- git pull: use  git -c http.sslVerify=false pull …  (-c BEFORE subcommand)
+- Notebook push as aarochu → 403 to joshnaim1/malatang. Push from laptop (gh auth).
+- If divergent branches: git reset --hard origin/main then pull evidence-integrity
+
+VERIFICATION COMMANDS
+---------------------
+  pytest
+  python -m harness.chart
+  python -m scripts.audit_wins
+  python -m harness.validate_bugs
+
+CONTRACTS / BENCHMARK PATCHES
+-----------------------------
+Not modified in this evidence-integrity pass.
