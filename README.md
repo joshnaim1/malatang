@@ -4,6 +4,20 @@
 
 An agent that fixes bugs, measures its pass rate on a frozen benchmark, and gets better between runs by rewriting its own strategy playbook from sandbox-verified wins and failures. **The product is the harness and the measured improvement curve, not the bug fixer itself.**
 
+## What we built
+
+Malatang is a **self-improving bug-fix harness** — not a one-off demo app:
+
+| Piece | What it does |
+|-------|----------------|
+| **Frozen benchmark** | 25 training + 5 hold-out bugs as unified diffs against a small Next.js app (`benchmark/`) |
+| **Deterministic Judge** | Temp sandbox → apply bug + fix → `npm run build && npm test`; binary pass/fail (`harness/judge.py`, `harness/sandbox.py`) |
+| **Creator pipeline** | Observer → RCA → Planner → Fix, guided by a versioned playbook (`creator/`, `playbook/`) |
+| **Reflection loop** | Mine verified trajectories into the next playbook (`scripts/reflect.py`, `creator/reflection.py`) |
+| **Metrics & evidence** | Per-iteration pass rate → `results/metrics.jsonl` + chart; trajectories → `trajectories/iterN/` |
+
+All benchmark inference runs on **approved hackathon compute** (AMD AI Notebooks + Fireworks). Development of the harness used **Cursor, Claude, and Codex** as pair-programming assistants (see [External services](#external-services--tools)).
+
 ## Operational definition of "self-improving"
 
 Malatang claims self-improvement **if and only if** all four conditions hold:
@@ -44,6 +58,27 @@ On the frozen 25-bug training set, pass rate went **40% → 40% → 36% → 48%*
 - **Runner metrics:** `results/metrics.jsonl` → `results/pass_rate.png`
 
 Team split and runbooks: [`SOW.md`](SOW.md) · Judge/harness guide: [`JudgeREADME.md`](JudgeREADME.md)
+
+---
+
+## Main code path
+
+| Step | What happens | Code |
+|------|----------------|------|
+| 1 | Load frozen bugs, orchestrate iterations | `harness/runner.py` |
+| 2 | Creator reads playbook, calls vLLM, emits fix JSON | `creator/pipeline.py` → `harness/creator_backend.py` |
+| 3 | Judge clones app, applies patches, runs build + tests | `harness/judge.py` → `harness/sandbox.py` |
+| 4 | Record trajectory + verdict | `harness/trajectory.py` → `trajectories/iterN/` |
+| 5 | Reflect on wins/failures, write next playbook | `scripts/reflect.py` → `playbook/vN.md` |
+| 6 | Append metrics, regenerate chart | `results/metrics.jsonl` → `harness/chart.py` |
+
+**Primary entry points:**
+
+```bash
+python -m harness.runner --creator live --fresh    # full benchmark loop (notebook)
+python -m harness.validate_bugs                      # confirm all 30 bugs break (~6 min)
+python -m harness.holdout_eval --creator live        # one-shot hold-out (run once at end)
+```
 
 ---
 
@@ -136,14 +171,54 @@ python -m harness.chart
 
 ---
 
-## AMD stack (submission axis)
+## AMD & approved compute usage
+
+All production benchmark runs used **AMD-provided hackathon infrastructure** and **Fireworks** (approved API partner). No other paid inference APIs were used in the benchmark loop.
 
 | Component | Role |
 |---|---|
-| AMD Radeon Pro W7900 (`gfx1100`, 48 GB) | Hackathon GPU through AMD AI Notebooks |
-| ROCm + vLLM + Qwen2.5-Coder-7B | Self-hosted Creator fix generation |
-| Fireworks API | Bounded reflection + playbook rewriting |
-| This repo | Deterministic sandbox verification + benchmark Runner |
+| [AMD AI Notebooks](https://notebooks.amd.com/hackathon) | Hackathon JupyterLab environment |
+| AMD Radeon Pro W7900 (`gfx1100`, 48 GB) | GPU for self-hosted Creator inference |
+| ROCm + vLLM | OpenAI-compatible local server on `localhost:8090` |
+| `Qwen/Qwen2.5-Coder-7B-Instruct` | Creator model (downloaded via Hugging Face token) |
+| Fireworks API | Reflection + playbook rewriting (lower volume than Creator sampling) |
+| This repo | Deterministic sandbox verification, benchmark Runner, metrics |
+
+**Sampling volume:** 25 bugs × up to 8 attempts × 4 training iterations, plus hold-out eval — Creator calls hit vLLM on the W7900; reflection calls hit Fireworks. See [`scripts/notebook_setup.sh`](scripts/notebook_setup.sh) for notebook bootstrap and [`scripts/check_vllm`](scripts/check_vllm.py) for health checks.
+
+---
+
+## External services & tools
+
+### Runtime (benchmark & inference)
+
+| Service | Used for | Config |
+|---------|----------|--------|
+| AMD AI Notebooks | GPU notebook environment | Event-provided access |
+| vLLM (self-hosted) | Creator fix generation | `VLLM_BASE_URL`, `VLLM_API_KEY`, `CREATOR_MODEL` in [`.env.example`](.env.example) |
+| Fireworks | Playbook reflection / rewriting | `FIREWORKS_API_KEY`, `FIREWORKS_MODEL` |
+| Hugging Face | Model weight download on notebook | `HF_TOKEN` |
+
+### Development (building this repo)
+
+| Tool | Used for |
+|------|----------|
+| [Cursor](https://cursor.com) | IDE + agent-assisted editing during the hackathon |
+| [Claude](https://anthropic.com) (Anthropic) | Architecture, docs, and harness implementation via Cursor agents |
+| [Codex](https://openai.com) (OpenAI) | Code generation and debugging via Cursor agents |
+
+These development assistants helped author the harness, schemas, and documentation. **They are not part of the benchmark inference path** — measured pass rates come only from vLLM (Creator) and Fireworks (reflection), with verification entirely in the local sandbox.
+
+---
+
+## Original work
+
+- **Harness, schemas, and benchmark** — designed and implemented by Team Malatang; not a fork of an existing self-improvement framework.
+- **Bug corpus** — 30 seeded defects across learnable classes, each validated to break build/tests before any fix is applied.
+- **Playbooks** — written by the reflection loop from the system's own verified trajectories, not hand-curated cheat sheets.
+- **Evidence** — metrics, trajectories, and provenance documented in [`docs/BENCHMARK_EVIDENCE_PROVENANCE.md`](docs/BENCHMARK_EVIDENCE_PROVENANCE.md); we report non-monotonic intermediate iterations honestly.
+
+Demo app under `src/` is a minimal Vite + React target for patches; the submission artifact is the **measurement harness and improvement curve**.
 
 ---
 
