@@ -41,6 +41,16 @@ def test_payload_carries_benchmark_and_playbooks() -> None:
     assert all(p["body"] for p in payload["playbooks"])
 
 
+def test_annotations_cover_every_iteration() -> None:
+    """Every metrics row (and the hold-out) gets a note the UI can show."""
+    payload = build_payload(REPO_ROOT)
+    for row in payload["metrics"]:
+        assert str(row["iteration"]) in payload["annotations"]
+    assert "holdout" in payload["annotations"]
+    # Annotations live beside metrics, never inside them — rows stay verbatim.
+    assert all("note" not in row for row in payload["metrics"])
+
+
 def test_committed_payload_is_in_sync() -> None:
     """web/data/replay.json must be regenerated when evidence changes."""
     committed = json.loads(

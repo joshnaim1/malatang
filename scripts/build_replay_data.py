@@ -30,6 +30,17 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT = REPO_ROOT / "web" / "data" / "replay.json"
 
+# Real context per iteration, sourced from docs/PRESENTATION_RUNBOOK.md — never invented.
+ITERATION_NOTES = {
+    0: "Baseline run with the seed playbook v0.",
+    1: "Playbook v1 was a dry-run plumbing validation of the reflection pipeline.",
+    2: "The dip is committed as measured — the curve is never smoothed.",
+    3: "Playbook v3 came from Fireworks reflection on sandbox-verified wins and failures.",
+}
+HOLDOUT_NOTE = (
+    "Five unseen bugs, evaluated once with the final playbook — never used for training."
+)
+
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.is_file():
@@ -94,6 +105,13 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
     baseline = metrics[0]["pass_rate"] if metrics else None
     final = metrics[-1]["pass_rate"] if metrics else None
 
+    # Kept separate from `metrics` so the metrics rows stay verbatim copies
+    # of results/metrics.jsonl (tests assert that property).
+    annotations = {
+        str(m["iteration"]): ITERATION_NOTES.get(m["iteration"], "") for m in metrics
+    }
+    annotations["holdout"] = HOLDOUT_NOTE if holdout else ""
+
     return {
         "generated_from": "results/metrics.jsonl + holdout.jsonl + benchmark/manifest.json + playbook/",
         "note": (
@@ -110,6 +128,7 @@ def build_payload(repo_root: Path) -> dict[str, Any]:
         },
         "metrics": metrics,
         "holdout": holdout,
+        "annotations": annotations,
         "playbooks": playbooks,
         "summary": {
             "baseline_pass_rate": baseline,

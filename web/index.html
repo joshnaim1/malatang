@@ -8,6 +8,17 @@
       name="description"
       content="Replay Malatang's measured self-improvement curve: pass rate by iteration on a frozen bug benchmark, sandbox-verified."
     />
+    <meta property="og:title" content="Malatang — Self-Improvement Replay" />
+    <meta
+      property="og:description"
+      content="A bug-fixing agent that rewrites its own playbook between runs. Training 40% → 48%, hold-out 60% — every pass verified by build + tests in a sandbox."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0d1017" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍜</text></svg>"
+    />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -57,11 +68,12 @@
           <label class="speed">
             Speed
             <select id="speed-select">
-              <option value="1600">1×</option>
-              <option value="900" selected>1.75×</option>
-              <option value="450">3.5×</option>
+              <option value="2400">1×</option>
+              <option value="1400" selected>1.75×</option>
+              <option value="700">3.5×</option>
             </select>
           </label>
+          <span class="muted kbd-hint">Space play · → step · ← back · R reset</span>
         </div>
         <div class="scrubber">
           <input id="scrubber" type="range" min="0" max="4" step="1" value="0" />
@@ -71,6 +83,13 @@
           Press Play to watch the harness improve across iterations, or Step
           through one at a time.
         </p>
+        <div class="final-banner" id="final-banner">
+          <span class="final-icon">🏁</span>
+          <div>
+            <h3>Self-improvement demonstrated</h3>
+            <p id="final-text"></p>
+          </div>
+        </div>
       </section>
 
       <section class="grid two-up">
@@ -118,10 +137,73 @@
 
       <section class="card">
         <div class="card-head">
-          <h2>Pipeline</h2>
-          <span class="muted">run → reflect → rewrite playbook → next iteration</span>
+          <h2>Self-improvement loop</h2>
+          <span class="muted">what happens between the numbers</span>
+        </div>
+        <div class="loop-diagram" id="loop-diagram">
+          <div class="loop-stage" id="loop-run">
+            <span class="loop-num">1</span>
+            <h3>Run benchmark</h3>
+            <p>Creator proposes one patch per seeded bug</p>
+          </div>
+          <div class="loop-arrow" aria-hidden="true">→</div>
+          <div class="loop-stage" id="loop-verify">
+            <span class="loop-num">2</span>
+            <h3>Sandbox verdict</h3>
+            <p>build + tests decide pass/fail — no LLM judge</p>
+          </div>
+          <div class="loop-arrow" aria-hidden="true">→</div>
+          <div class="loop-stage" id="loop-reflect">
+            <span class="loop-num">3</span>
+            <h3>Reflect</h3>
+            <p>mine verified wins &amp; failures from trajectories</p>
+          </div>
+          <div class="loop-arrow" aria-hidden="true">→</div>
+          <div class="loop-stage" id="loop-rewrite">
+            <span class="loop-num">4</span>
+            <h3>Rewrite playbook</h3>
+            <p>vN → vN+1 — the self-modification</p>
+          </div>
+          <div class="loop-arrow loop-return" aria-hidden="true">↺</div>
         </div>
         <div class="pipeline" id="pipeline-steps"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Operational definition of “self-improving”</h2>
+          <span class="badge neutral" id="conditions-score">2 / 4</span>
+        </div>
+        <div class="conditions">
+          <div class="condition met" id="cond-1">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Same frozen benchmark</h3>
+              <p class="cond-detail">every iteration runs the identical 25 seeded bugs</p>
+            </div>
+          </div>
+          <div class="condition met" id="cond-2">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Automatic verification</h3>
+              <p class="cond-detail">pass = build + tests green in a sandbox — no human judging, no LLM vibes</p>
+            </div>
+          </div>
+          <div class="condition" id="cond-3">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Measured improvement</h3>
+              <p class="cond-detail">replay the iterations to reveal the curve…</p>
+            </div>
+          </div>
+          <div class="condition" id="cond-4">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Self-modification between runs</h3>
+              <p class="cond-detail">waiting for the first reflection…</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="grid two-up">
@@ -175,6 +257,13 @@
             <span class="muted">Level-1 self-modification</span>
           </div>
           <div class="playbook-chips" id="playbook-chips"></div>
+          <div class="pb-toolbar">
+            <div class="pb-mode">
+              <button class="mode-btn active" type="button" data-mode="diff" id="mode-diff">Diff vs prev</button>
+              <button class="mode-btn" type="button" data-mode="full" id="mode-full">Full text</button>
+            </div>
+            <span class="muted" id="pb-stats"></span>
+          </div>
           <pre class="playbook-body" id="playbook-body">Select a playbook version.</pre>
         </article>
       </section>

@@ -371,6 +371,191 @@ tbody tr:last-child td { border-bottom: none; }
   margin: 0;
 }
 
+/* Keyboard hint */
+.kbd-hint {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Final banner */
+.final-banner {
+  display: none;
+  margin-top: 16px;
+  border: 1px solid rgba(70, 209, 158, 0.5);
+  background: linear-gradient(135deg, rgba(70, 209, 158, 0.12), rgba(111, 125, 255, 0.1));
+  border-radius: 12px;
+  padding: 16px 18px;
+  gap: 14px;
+  align-items: center;
+  animation: bannerGlow 2.4s ease-in-out infinite;
+}
+.final-banner.show {
+  display: flex;
+}
+@keyframes bannerGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(70, 209, 158, 0); }
+  50% { box-shadow: 0 0 26px rgba(70, 209, 158, 0.25); }
+}
+.final-banner h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: var(--good);
+}
+.final-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.final-icon { font-size: 26px; }
+
+/* Self-improvement loop diagram */
+.loop-diagram {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.loop-stage {
+  flex: 1 1 160px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  opacity: 0.55;
+  transition: opacity 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.loop-stage h3 {
+  margin: 8px 0 4px;
+  font-size: 14px;
+}
+.loop-stage p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.loop-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.loop-stage.active {
+  opacity: 1;
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(255, 106, 42, 0.22);
+  transform: translateY(-2px);
+}
+.loop-stage.active .loop-num {
+  background: var(--accent);
+  color: #1a1005;
+  border-color: transparent;
+}
+.loop-arrow {
+  align-self: center;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+/* Operational-definition checklist */
+.conditions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+.condition {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--card-2);
+  display: flex;
+  gap: 12px;
+  opacity: 0.65;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+}
+.condition.met {
+  opacity: 1;
+  border-color: rgba(70, 209, 158, 0.45);
+}
+.cond-check {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-weight: 800;
+  font-size: 14px;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.condition.met .cond-check {
+  background: var(--good);
+  border-color: var(--good);
+  color: #08251a;
+}
+.condition h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.condition p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Playbook diff */
+.pb-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.pb-mode { display: flex; gap: 8px; }
+.mode-btn {
+  background: var(--card-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+.mode-btn.active {
+  border-color: var(--accent);
+  color: var(--accent-soft);
+}
+#pb-stats { font-size: 12px; }
+.dl {
+  display: block;
+  padding: 0 6px;
+  white-space: pre-wrap;
+}
+.dl-add { background: rgba(70, 209, 158, 0.12); color: #8fe6c6; }
+.dl-del { background: rgba(255, 93, 93, 0.1); color: #ff9b9b; }
+.dl-ctx { color: #7d8798; }
+.dl-gap {
+  color: var(--muted);
+  text-align: center;
+  padding: 3px 0;
+  font-style: italic;
+}
+
 /* Footer */
 .footer {
   display: flex;

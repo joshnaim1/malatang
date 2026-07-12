@@ -66,9 +66,13 @@ Team split and runbooks: [`SOW.md`](SOW.md) · Judge/harness guide: [`JudgeREADM
 `web/` is a **static, self-contained replay showcase** — no Python server, no live
 runner — designed to be hosted on Vercel so anyone can visualize the measured
 improvement curve. It loads one committed payload (`web/data/replay.json`) and
-replays it client-side: press **Play** (or **Step**/scrub) to watch pass rate
-build iteration-by-iteration, with the pass-rate curve, per-iteration table,
-frozen-benchmark grid, and playbook (v0→v3) evolution all revealed from real,
+replays it client-side: press **Play** (or **Step**/scrub, or Space/←/→/R) to
+watch pass rate build iteration-by-iteration. As the replay runs, the
+self-improvement loop diagram animates (run → sandbox verdict → reflect →
+rewrite playbook), the four-condition operational definition of
+"self-improving" checks off live, and the playbook panel shows the actual
+vN→vN+1 **diffs** — the self-modification itself — alongside the pass-rate
+curve, per-iteration table, and frozen-benchmark grid. All of it from real,
 committed evidence.
 
 ```bash

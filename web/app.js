@@ -22,6 +22,8 @@ const els = {
   speedSelect: document.getElementById("speed-select"),
   scrubber: document.getElementById("scrubber"),
   scrubTicks: document.getElementById("scrub-ticks"),
+  finalBanner: document.getElementById("final-banner"),
+  finalText: document.getElementById("final-text"),
   activeStatus: document.getElementById("active-status"),
   activeIteration: document.getElementById("active-iteration"),
   activePlaybook: document.getElementById("active-playbook"),
@@ -30,7 +32,12 @@ const els = {
   activeProgressFill: document.getElementById("active-progress-fill"),
   activeDetail: document.getElementById("active-detail"),
   passChart: document.getElementById("pass-chart"),
+  loopRun: document.getElementById("loop-run"),
+  loopVerify: document.getElementById("loop-verify"),
+  loopReflect: document.getElementById("loop-reflect"),
+  loopRewrite: document.getElementById("loop-rewrite"),
   pipelineSteps: document.getElementById("pipeline-steps"),
+  conditionsScore: document.getElementById("conditions-score"),
   metricsBody: document.getElementById("metrics-body"),
   holdoutBadge: document.getElementById("holdout-badge"),
   holdoutPanel: document.getElementById("holdout-panel"),
@@ -40,17 +47,33 @@ const els = {
   benchFoot: document.getElementById("bench-foot"),
   playbookChips: document.getElementById("playbook-chips"),
   playbookBody: document.getElementById("playbook-body"),
+  pbStats: document.getElementById("pb-stats"),
+  modeDiff: document.getElementById("mode-diff"),
+  modeFull: document.getElementById("mode-full"),
   footerNote: document.getElementById("footer-note"),
 };
 
 let data = null;
 let steps = []; // ordered replay steps
-let current = 0; // 0 = nothing revealed; steps[i-1] is the last revealed
+let current = 0; // 0 = nothing revealed; steps[current-1] is the last revealed
 let playTimer = null;
+let loopTimer = null;
+let pbMode = "diff";
+let currentPbVersion = null;
 
 function pct(rate) {
   if (rate == null || Number.isNaN(rate)) return "—";
   return `${Math.round(rate * 100)}%`;
+}
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function stepNote(step) {
+  if (!step || !data.annotations) return "";
+  const key = step.kind === "holdout" ? "holdout" : String(step.iteration);
+  return data.annotations[key] || "";
 }
 
 // ---- data → replay steps ------------------------------------------------
@@ -152,6 +175,39 @@ function drawChart(revealCount) {
   });
 }
 
+// ---- self-improvement loop diagram ---------------------------------------
+function setLoopStages(active) {
+  const map = {
+    run: els.loopRun,
+    verify: els.loopVerify,
+    reflect: els.loopReflect,
+    rewrite: els.loopRewrite,
+  };
+  Object.entries(map).forEach(([key, el]) => {
+    el.classList.toggle("active", active.includes(key));
+  });
+}
+
+function animateLoop(step, { flash = true } = {}) {
+  clearTimeout(loopTimer);
+  loopTimer = null;
+  if (!step) {
+    setLoopStages([]);
+    return;
+  }
+  setLoopStages(["run", "verify"]);
+  const idx = steps.indexOf(step);
+  const next = steps[idx + 1];
+  // Between training iterations the harness reflects and rewrites the playbook.
+  if (flash && step.kind === "iteration" && next && next.kind === "iteration") {
+    const interval = Number(els.speedSelect.value);
+    loopTimer = setTimeout(() => {
+      setLoopStages(["reflect", "rewrite"]);
+      highlightPlaybook(next.playbook); // show the freshly rewritten playbook
+    }, Math.min(interval * 0.55, 900));
+  }
+}
+
 // ---- render revealed state ---------------------------------------------
 function renderActive(step) {
   if (!step) {
@@ -196,6 +252,42 @@ function renderPipeline(revealCount) {
   });
 }
 
+function setCondition(id, met, detail) {
+  const el = document.getElementById(id);
+  el.classList.toggle("met", met);
+  if (detail) el.querySelector(".cond-detail").textContent = detail;
+}
+
+function renderConditions() {
+  const iterSteps = steps.filter((s) => s.kind === "iteration");
+  const revealedIters = steps.slice(0, current).filter((s) => s.kind === "iteration");
+
+  const allRevealed = iterSteps.length > 0 && revealedIters.length === iterSteps.length;
+  const base = data.summary.baseline_pass_rate;
+  const fin = data.summary.final_pass_rate;
+  const improved = allRevealed && fin > base;
+  setCondition(
+    "cond-3",
+    improved,
+    improved
+      ? `final ${pct(fin)} > baseline ${pct(base)} — dips at iter 2, committed as measured`
+      : `replay the iterations to reveal the curve… (${revealedIters.length}/${iterSteps.length})`
+  );
+
+  const versions = [...new Set(revealedIters.map((s) => s.playbook))];
+  const modified = versions.length >= 2;
+  setCondition(
+    "cond-4",
+    modified,
+    modified
+      ? `playbook rewritten ${versions.length - 1}× so far (${versions[0]} → ${versions[versions.length - 1]})`
+      : "waiting for the first reflection…"
+  );
+
+  els.conditionsScore.textContent = `${2 + (improved ? 1 : 0) + (modified ? 1 : 0)} / 4`;
+  els.conditionsScore.className = `badge ${improved && modified ? "complete" : "neutral"}`;
+}
+
 function renderTable(revealCount) {
   const rows = steps.slice(0, revealCount).filter((s) => s.kind === "iteration");
   if (!rows.length) {
@@ -234,6 +326,7 @@ function renderHoldout(revealed) {
 }
 
 let gridMode = "training";
+let lastGridPassed = 0;
 function renderBugGrid(step) {
   const isHold = step && step.kind === "holdout";
   const wantMode = isHold ? "holdout" : "training";
@@ -247,14 +340,23 @@ function renderBugGrid(step) {
       els.bugGrid.appendChild(cell);
     });
     gridMode = wantMode;
+    lastGridPassed = 0;
     els.benchNote.textContent = isHold
       ? `${bugs.length} hold-out bugs`
       : `${bugs.length} training bugs`;
   }
   const passed = step ? step.passed : 0;
   Array.from(els.bugGrid.children).forEach((cell, i) => {
-    cell.classList.toggle("passed", i < passed);
+    const on = i < passed;
+    // Cascade newly-passing cells; clearing or rewinding is instant.
+    if (on && !cell.classList.contains("passed") && i >= lastGridPassed) {
+      cell.style.transitionDelay = `${(i - lastGridPassed) * 45}ms`;
+    } else {
+      cell.style.transitionDelay = "0ms";
+    }
+    cell.classList.toggle("passed", on);
   });
+  lastGridPassed = passed;
 }
 
 function renderScrubTicks() {
@@ -263,18 +365,115 @@ function renderScrubTicks() {
     .join("");
 }
 
+// ---- playbook panel (chips + diff) ---------------------------------------
+function lineDiff(aText, bText) {
+  const a = aText.split("\n");
+  const b = bText.split("\n");
+  const n = a.length;
+  const m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = m - 1; j >= 0; j -= 1) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      out.push({ t: " ", s: a[i] });
+      i += 1;
+      j += 1;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      out.push({ t: "-", s: a[i] });
+      i += 1;
+    } else {
+      out.push({ t: "+", s: b[j] });
+      j += 1;
+    }
+  }
+  while (i < n) out.push({ t: "-", s: a[i++] });
+  while (j < m) out.push({ t: "+", s: b[j++] });
+  return out;
+}
+
+function renderDiffHtml(diff) {
+  const line = (d) => {
+    const cls = d.t === "+" ? "dl-add" : d.t === "-" ? "dl-del" : "dl-ctx";
+    const prefix = d.t === " " ? "  " : `${d.t} `;
+    return `<span class="dl ${cls}">${esc(prefix + d.s)}</span>`;
+  };
+  const out = [];
+  let i = 0;
+  while (i < diff.length) {
+    if (diff[i].t !== " ") {
+      out.push(line(diff[i]));
+      i += 1;
+      continue;
+    }
+    let j = i;
+    while (j < diff.length && diff[j].t === " ") j += 1;
+    const run = j - i;
+    if (run > 6) {
+      out.push(line(diff[i]), line(diff[i + 1]));
+      out.push(`<span class="dl dl-gap">··· ${run - 4} unchanged lines ···</span>`);
+      out.push(line(diff[j - 2]), line(diff[j - 1]));
+    } else {
+      for (let k = i; k < j; k += 1) out.push(line(diff[k]));
+    }
+    i = j;
+  }
+  return out.join("");
+}
+
+function renderPlaybookBody(version) {
+  const idx = data.playbooks.findIndex((p) => p.version === version);
+  const pb = data.playbooks[idx];
+  if (!pb) {
+    els.playbookBody.textContent = "Select a playbook version.";
+    els.pbStats.textContent = "";
+    return;
+  }
+  if (pbMode === "full") {
+    els.playbookBody.textContent = pb.body;
+    els.pbStats.textContent = `${(pb.chars / 1000).toFixed(1)}k chars`;
+    return;
+  }
+  const prev = data.playbooks[idx - 1];
+  if (!prev) {
+    els.playbookBody.textContent = pb.body;
+    els.pbStats.textContent = `${version} is the seed playbook — no predecessor`;
+    return;
+  }
+  const diff = lineDiff(prev.body, pb.body);
+  const adds = diff.filter((d) => d.t === "+").length;
+  const dels = diff.filter((d) => d.t === "-").length;
+  els.pbStats.textContent = `${prev.version} → ${version}: +${adds} / −${dels} lines`;
+  els.playbookBody.innerHTML = renderDiffHtml(diff);
+}
+
 function highlightPlaybook(version) {
+  currentPbVersion = version;
   Array.from(els.playbookChips.children).forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.version === version);
   });
-  const pb = data.playbooks.find((p) => p.version === version);
-  els.playbookBody.textContent = pb ? pb.body : "Select a playbook version.";
+  renderPlaybookBody(version);
 }
 
+function setPbMode(mode) {
+  pbMode = mode;
+  els.modeDiff.classList.toggle("active", mode === "diff");
+  els.modeFull.classList.toggle("active", mode === "full");
+  if (currentPbVersion) renderPlaybookBody(currentPbVersion);
+}
+
+// ---- top-level render -----------------------------------------------------
 function render() {
   const step = current > 0 ? steps[current - 1] : null;
   renderActive(step);
   renderPipeline(current);
+  renderConditions();
   renderTable(current);
   drawChart(current);
   renderBugGrid(step);
@@ -284,6 +483,7 @@ function render() {
   els.scrubber.value = String(current);
 
   const atEnd = current >= steps.length;
+  els.finalBanner.classList.toggle("show", atEnd);
   els.replayStatus.textContent = current === 0 ? "ready" : atEnd ? "done" : "replaying";
   els.replayStatus.className = `badge ${current === 0 ? "neutral" : atEnd ? "complete" : "running"}`;
   if (current === 0) {
@@ -293,26 +493,39 @@ function render() {
     els.replayMessage.textContent = `Done — training ${pct(data.summary.baseline_pass_rate)} → ${pct(
       data.summary.final_pass_rate
     )}, hold-out ${pct(data.summary.holdout_pass_rate)}.`;
-  } else {
-    els.replayMessage.textContent = step
-      ? `${step.kind === "holdout" ? "Hold-out eval" : `Iteration ${step.iteration}`} · playbook ${step.playbook}.`
-      : "";
+  } else if (step) {
+    const label = step.kind === "holdout" ? "Hold-out eval" : `Iteration ${step.iteration}`;
+    const note = stepNote(step);
+    els.replayMessage.textContent = `${label} · playbook ${step.playbook}.${note ? ` ${note}` : ""}`;
   }
 }
 
 // ---- controls -----------------------------------------------------------
-function stepForward() {
+function stepForward({ flash = true } = {}) {
   if (current >= steps.length) {
     stopPlay();
     return;
   }
   current += 1;
   render();
+  animateLoop(steps[current - 1], { flash });
   if (current >= steps.length) stopPlay();
 }
 
+function stepBack() {
+  stopPlay();
+  if (current === 0) return;
+  current -= 1;
+  render();
+  animateLoop(current > 0 ? steps[current - 1] : null, { flash: false });
+}
+
 function startPlay() {
-  if (current >= steps.length) current = 0;
+  if (current >= steps.length) {
+    current = 0;
+    render();
+    animateLoop(null);
+  }
   els.playBtn.textContent = "⏸ Pause";
   const speed = Number(els.speedSelect.value);
   stepForward();
@@ -335,14 +548,25 @@ function reset() {
   current = 0;
   els.playBtn.textContent = "▶ Play";
   render();
+  animateLoop(null);
 }
 
 // ---- init ---------------------------------------------------------------
 function renderStatic() {
-  els.sumBaseline.textContent = pct(data.summary.baseline_pass_rate);
-  els.sumFinal.textContent = pct(data.summary.final_pass_rate);
-  els.sumHoldout.textContent = pct(data.summary.holdout_pass_rate);
+  const base = data.summary.baseline_pass_rate;
+  const fin = data.summary.final_pass_rate;
+  const hold = data.summary.holdout_pass_rate;
+  els.sumBaseline.textContent = pct(base);
+  els.sumFinal.textContent = pct(fin);
+  els.sumHoldout.textContent = pct(hold);
   els.evidencePill.textContent = `${data.summary.iterations} iterations · real evidence`;
+
+  const deltaPts = Math.round((fin - base) * 100);
+  const rewrites = Math.max(data.playbooks.length - 1, 0);
+  els.finalText.textContent =
+    `Training ${pct(base)} → ${pct(fin)} (${deltaPts >= 0 ? "+" : ""}${deltaPts} pts) · ` +
+    `hold-out ${pct(hold)} · playbook rewritten ${rewrites}× (v0 → ${data.playbooks.at(-1)?.version}) · ` +
+    "every pass verified by build + tests in a sandbox.";
 
   const cc = data.benchmark.class_counts || {};
   els.benchClasses.innerHTML = Object.entries(cc)
@@ -395,11 +619,30 @@ async function init() {
     stopPlay();
     current = Number(e.target.value);
     render();
+    animateLoop(current > 0 ? steps[current - 1] : null, { flash: false });
   });
   els.speedSelect.addEventListener("change", () => {
     if (playTimer) {
       stopPlay();
       startPlay();
+    }
+  });
+  els.modeDiff.addEventListener("click", () => setPbMode("diff"));
+  els.modeFull.addEventListener("click", () => setPbMode("full"));
+
+  document.addEventListener("keydown", (e) => {
+    if (e.target instanceof Element && e.target.closest("input, select, textarea")) return;
+    if (e.code === "Space") {
+      e.preventDefault();
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      togglePlay();
+    } else if (e.code === "ArrowRight") {
+      stopPlay();
+      stepForward();
+    } else if (e.code === "ArrowLeft") {
+      stepBack();
+    } else if (e.code === "KeyR") {
+      reset();
     }
   });
 }

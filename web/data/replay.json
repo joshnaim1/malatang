@@ -223,6 +223,13 @@
     "attempts_per_bug": 8,
     "total_llm_calls": 28
   },
+  "annotations": {
+    "0": "Baseline run with the seed playbook v0.",
+    "1": "Playbook v1 was a dry-run plumbing validation of the reflection pipeline.",
+    "2": "The dip is committed as measured \u2014 the curve is never smoothed.",
+    "3": "Playbook v3 came from Fireworks reflection on sandbox-verified wins and failures.",
+    "holdout": "Five unseen bugs, evaluated once with the final playbook \u2014 never used for training."
+  },
   "playbooks": [
     {
       "version": "v0",
