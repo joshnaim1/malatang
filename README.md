@@ -146,6 +146,20 @@ python -m harness.chart
 
 `scripts.reflect --dry-run` validates plumbing but is explicitly not evidence of self-improvement. Hold-out results are isolated in `results/holdout.jsonl`; they never enter the training curve.
 
+### Live pipeline dashboard (demo GUI)
+
+A lightweight web UI polls `results/metrics.jsonl` and `trajectories/iterN/` every 2 seconds so judges can watch iteration progress during a live run.
+
+```bash
+python -m scripts.dashboard_server
+# or: bash scripts/demo_dashboard.sh
+
+# On the notebook, bind publicly if needed:
+python -m scripts.dashboard_server --host 0.0.0.0 --port 8765
+```
+
+Open `http://127.0.0.1:8765/` while the runner is active. The dashboard shows pass-rate curve, pipeline step status, active-iteration progress, recent attempt verdicts, hold-out results, and a **Run iteration** button that launches `python -m harness.runner` in the background (`POST /api/run`).
+
 ---
 
 ## Repo layout
@@ -158,7 +172,8 @@ python -m harness.chart
 | `contracts/` | Frozen JSON schemas + examples |
 | `creator/` | Creator pipeline (Observer → Fix → mutation); diff normalization |
 | `harness/` | Sandbox, Judge, Runner, chart (Python) |
-| `scripts/` | Notebook bootstrap, vLLM/Fireworks health checks, Creator e2e |
+| `scripts/` | Notebook bootstrap, vLLM/Fireworks health checks, Creator e2e, pipeline dashboard |
+| `dashboard/` | Live iteration progress GUI (served by `scripts/dashboard_server.py`) |
 | `results/` | Training `metrics.jsonl`, isolated `holdout.jsonl`, and `pass_rate.png` |
 
 ---
