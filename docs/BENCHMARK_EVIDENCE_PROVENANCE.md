@@ -93,7 +93,9 @@ Live benchmark runs for iterations 2 and 3 used these truncated playbooks as com
 
 ## SHA-256 hashes (committed tree at audit time)
 
-See `results/evidence/SHA256SUMS.txt` for the full list. Summary:
+See `results/evidence/SHA256SUMS.txt` for the full list.
+
+### GitHub (laptop commit at PR #11)
 
 | Artifact | SHA-256 |
 |----------|---------|
@@ -104,36 +106,45 @@ See `results/evidence/SHA256SUMS.txt` for the full list. Summary:
 | `playbook/v2.md` | `f1baece8d072b213bf55247ccf30362af340d9c2d87e1e8d2342ee1bb5d3b79b` |
 | `playbook/v3.md` | `5f017bdae18b4f8f669ab3b4663a88f47199ccd9cc013f8d044c36858958d8da` |
 
-### Notebook comparison (run on notebook to verify copy fidelity)
+### AMD notebook export (2026-07-12 — authoritative)
 
-```bash
-cd /workspace/malatang
-sha256sum playbook/v1.md playbook/v2.md playbook/v3.md
-wc -l playbook/v1.md playbook/v2.md playbook/v3.md
-tail -n 5 playbook/v2.md playbook/v3.md
-```
+| Artifact | SHA-256 | Matches GitHub? |
+|----------|---------|-----------------|
+| `playbook/v1.md` | `432efcc32380d024af71c2f053136a72361aa17202fb9c4ef394aba4e6095c0c` | Yes |
+| `playbook/v2.md` | `f1baece8d072b213bf55247ccf30362af340d9c2d87e1e8d2342ee1bb5d3b79b` | Yes |
+| `playbook/v3.md` | `5f017bdae18b4f8f669ab3b4663a88f47199ccd9cc013f8d044c36858958d8da` | Yes |
+| `results/metrics.jsonl` | `d8616b9ea66f496ad556371390a615974c35e73709cdc4c2b9636603746b12e8` | **No** — sync notebook file |
+| `results/holdout.jsonl` | `e2e2bdbf3cfc3f8353450a39e0115d81de7f625f37e93d38912231cda5f86b51` | **No** — sync notebook file |
+| `results/pass_rate.png` | `6449bce7b01da35f2de11e054b5e604325d93197a567ccb49105c4684f6f633b` | Yes |
+| `results/evidence/trajectories-archive.tar.gz` | `e8a7554546985a958dd0f4947eb6e8a7e771f58f681d1f8b51d258aa77e5c9c8` | Not yet committed |
 
-If notebook hashes differ from the table above, the GitHub copy is not byte-identical — document the notebook hash in a follow-up commit. If hashes match, truncation originated on the notebook, not during laptop transfer.
+**Playbook conclusion:** GitHub copies are **byte-identical** to the notebook. v2/v3 truncation existed on the notebook before transfer; live runs used truncated playbooks.
 
-## Trajectories — **not committed**
+**Metrics/hold-out conclusion:** Notebook `metrics.jsonl` and `holdout.jsonl` differ from GitHub — replace GitHub copies with notebook exports in a follow-up commit (do not hand-edit).
 
-`trajectories/iter0` through `iter3` and `trajectories/holdout/` exist on the AMD notebook but are **gitignored** and were **not** present in this clone at audit time.
+## Trajectories — notebook export complete, not yet in git
 
-To export from the notebook without altering files:
+Notebook export (2026-07-12) produced `results/evidence/trajectories-archive.tar.gz` (SHA `e8a75545…`). Transfer to laptop and commit in a follow-up PR.
 
-```bash
-bash scripts/notebook_export_evidence.sh
-```
+### `audit_wins` — notebook (2026-07-12)
 
-Then transfer `results/evidence/trajectories-archive.tar.gz` and `results/evidence/SHA256SUMS.txt` to this repo.
+See `results/evidence/audit_wins_notebook.txt`:
 
-### `audit_wins` on this clone (2026-07-11)
+| Directory | Accepted wins checked | Contaminated |
+|-----------|----------------------|--------------|
+| iter0 | 11 | 0 |
+| iter1 | 14 | 0 |
+| iter2 | 9 | 0 |
+| iter3 | 17 | 0 |
+| holdout | 3 | 0 |
 
-```
-No accepted trajectory wins found to audit.
-```
+**PASS:** no protected-file contamination.
 
-See `results/evidence/audit_wins_committed_repo.txt`. **Notebook audit output is required** before claiming win certification on production trajectories.
+**vs metrics.jsonl `bugs_passed`:** iter0 trajectories show **11** accepted files vs metrics row **10**; iter1 **14** vs **10**; iter3 **17** vs **12**. `audit_wins` counts accepted trajectory JSON files on disk; `bugs_passed` counts unique bugs healed in the official runner row. Extra accepted files likely come from **reruns** writing into the same `trajectories/iterN/` tree without clearing prior attempts. iter2 (9) matches metrics (9).
+
+### `audit_wins` on laptop clone (no trajectories)
+
+See `results/evidence/audit_wins_committed_repo.txt`.
 
 ## `results/holdout.jsonl` integrity note
 

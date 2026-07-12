@@ -1,0 +1,13 @@
+# audit_wins — AMD notebook export (2026-07-12)
+# Command: bash scripts/notebook_export_evidence.sh
+
+holdout: wins checked=3, contaminated=0
+iter0: wins checked=11, contaminated=0
+iter1: wins checked=14, contaminated=0
+iter2: wins checked=9, contaminated=0
+iter3: wins checked=17, contaminated=0
+PASS: all accepted wins touch only allowed source files.
+
+# Note: wins_checked counts accepted trajectory JSON files, not unique bugs_passed
+# in metrics.jsonl. iter1 (14) and iter3 (17) exceed committed metrics rows (10, 12)
+# — likely extra accepted files from reruns in the same trajectories/iterN/ directories.
