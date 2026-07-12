@@ -10,12 +10,20 @@ Malatang claims self-improvement **if and only if** all four conditions hold:
 
 1. **Same benchmark.** Every iteration runs the identical, frozen set of seeded bugs.
 2. **Automatic verification.** A fix counts as a pass only if the build succeeds and the test suite passes in a sandbox. No human judging, no LLM vibes as ground truth.
-3. **Rising pass rate.** Iteration N+1 pass rate > iteration N pass rate, measured on the same set.
+3. **Rising pass rate.** Iteration N+1 pass rate > iteration N pass rate, measured on the same set (the SOW target; see submitted results below for what we actually measured).
 4. **Self-modification between runs.** The only thing that changes between iterations is something the system changed about itself (playbook at Level 1; model weights at Level 2 stretch).
 
 ![Benchmark pass rate by iteration](results/pass_rate.png)
 
-The chart is generated only from `results/metrics.jsonl`; live notebook artifacts must be synced before submission. Full project spec: [`SOW.md`](SOW.md).
+The chart is generated only from `results/metrics.jsonl`. Full project spec: [`SOW.md`](SOW.md). Evidence audit: [`docs/BENCHMARK_EVIDENCE_PROVENANCE.md`](docs/BENCHMARK_EVIDENCE_PROVENANCE.md).
+
+### Submitted benchmark results (AMD notebook, honest)
+
+On the frozen 25-bug training set, pass rate went **40% → 40% → 36% → 48%** — intermediate iterations were noisy and **not** monotonically improving. Final training pass rate improved from **40% to 48%**. On the five-bug hold-out (run once with playbook v3), pass rate was **60%** (3/5).
+
+- **`playbook/v1.md` is a dry-run** (`scripts.reflect --iteration 0 --dry-run`), not a live Fireworks rewrite. Do not claim otherwise.
+- Committed `playbook/v2.md` and `playbook/v3.md` are **truncated** in the repository; live runs used them as-is. See the provenance doc for SHA-256 hashes and notebook export steps.
+- Production trajectories are **not** in git; use `scripts/notebook_export_evidence.sh` on the notebook to archive them.
 
 ---
 

@@ -1,0 +1,9 @@
+6b50642e4589df0197b331c58763e180edc5662aa3f16eccce8aa5cda57eaca1  results/metrics.jsonl
+1240250e2b474ab38808c99ad8dbc06fe5cdf886792bfc08e90d532e74ab544a  results/holdout.jsonl
+6449bce7b01da35f2de11e054b5e604325d93197a567ccb49105c4684f6f633b  results/pass_rate.png
+9e33ec1ad52b24ad9e4a51df46c8ae8af92797c53b7a11668913b2f3e2200098  playbook/v0.md
+432efcc32380d024af71c2f053136a72361aa17202fb9c4ef394aba4e6095c0c  playbook/v1.md
+f1baece8d072b213bf55247ccf30362af340d9c2d87e1e8d2342ee1bb5d3b79b  playbook/v2.md
+5f017bdae18b4f8f669ab3b4663a88f47199ccd9cc013f8d044c36858958d8da  playbook/v3.md
+
+# trajectories-archive.tar.gz — not present in repo at audit time; add hash after notebook export
