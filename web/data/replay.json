@@ -1,0 +1,265 @@
+{
+  "generated_from": "results/metrics.jsonl + holdout.jsonl + benchmark/manifest.json + playbook/",
+  "note": "Real committed evidence. Per-bug pass/fail was not committed (trajectories were gitignored during the AMD run); pass COUNTS are real, individual bug verdicts are not reconstructed.",
+  "benchmark": {
+    "training_total": 25,
+    "holdout_total": 5,
+    "class_counts": {
+      "async": 4,
+      "null-handling": 5,
+      "off-by-one": 5,
+      "syntax": 6,
+      "wrong-api": 5
+    },
+    "training_bugs": [
+      {
+        "id": "syntax-001",
+        "class": "syntax",
+        "description": "Missing closing angle bracket on </main> JSX tag"
+      },
+      {
+        "id": "syntax-002",
+        "class": "syntax",
+        "description": "Unclosed <li> opening tag in cart list JSX"
+      },
+      {
+        "id": "syntax-003",
+        "class": "syntax",
+        "description": "Missing closing brace on stats.sum export"
+      },
+      {
+        "id": "syntax-004",
+        "class": "syntax",
+        "description": "Unclosed template literal in formatCents return"
+      },
+      {
+        "id": "syntax-005",
+        "class": "syntax",
+        "description": "Missing closing parenthesis on formatCents JSX call"
+      },
+      {
+        "id": "syntax-006",
+        "class": "syntax",
+        "description": "Unclosed StrictMode JSX tag in main entry"
+      },
+      {
+        "id": "offbyone-001",
+        "class": "off-by-one",
+        "description": "pageSlice includes one extra item beyond page size"
+      },
+      {
+        "id": "offbyone-002",
+        "class": "off-by-one",
+        "description": "countInStock iterates one past array end without guard"
+      },
+      {
+        "id": "offbyone-003",
+        "class": "off-by-one",
+        "description": "pageSlice start index shifted by one"
+      },
+      {
+        "id": "offbyone-004",
+        "class": "off-by-one",
+        "description": "sum uses wrong reduce initial value"
+      },
+      {
+        "id": "offbyone-005",
+        "class": "off-by-one",
+        "description": "pageSlice end index one item short"
+      },
+      {
+        "id": "null-001",
+        "class": "null-handling",
+        "description": "formatLineLabel dereferences spiceLevel without optional chaining"
+      },
+      {
+        "id": "null-002",
+        "class": "null-handling",
+        "description": "average returns 0 instead of null for empty input"
+      },
+      {
+        "id": "null-003",
+        "class": "null-handling",
+        "description": "sumLineTotals adds undefined tax field producing NaN"
+      },
+      {
+        "id": "null-004",
+        "class": "null-handling",
+        "description": "formatCents drops null guard"
+      },
+      {
+        "id": "null-005",
+        "class": "null-handling",
+        "description": "average drops null input guard"
+      },
+      {
+        "id": "api-001",
+        "class": "wrong-api",
+        "description": "Intl.NumberFormat.format receives cents instead of dollars"
+      },
+      {
+        "id": "api-002",
+        "class": "wrong-api",
+        "description": "formatMoneyDigits mis-filters Intl formatToParts types"
+      },
+      {
+        "id": "api-003",
+        "class": "wrong-api",
+        "description": "configuredCurrencyCode reads resolvedOptions style not currency"
+      },
+      {
+        "id": "api-004",
+        "class": "wrong-api",
+        "description": "currencySymbolFor uses format instead of formatToParts"
+      },
+      {
+        "id": "api-005",
+        "class": "wrong-api",
+        "description": "dollarsToCents reads currency part instead of integer part"
+      },
+      {
+        "id": "async-001",
+        "class": "async",
+        "description": "loadCartTotal missing await on Promise.all"
+      },
+      {
+        "id": "async-002",
+        "class": "async",
+        "description": "validateCartSpices missing await on Promise.all"
+      },
+      {
+        "id": "async-003",
+        "class": "async",
+        "description": "loadCartTotal uses await outside async function"
+      },
+      {
+        "id": "async-004",
+        "class": "async",
+        "description": "validateCartSpices short-circuits to true without checking"
+      }
+    ],
+    "holdout_bugs": [
+      {
+        "id": "holdout-001",
+        "class": "syntax",
+        "description": "Missing closing brace on currency.formatMoney export"
+      },
+      {
+        "id": "holdout-002",
+        "class": "off-by-one",
+        "description": "loadCartTotal reduce starts from wrong index"
+      },
+      {
+        "id": "holdout-003",
+        "class": "null-handling",
+        "description": "formatMoney drops null cents guard"
+      },
+      {
+        "id": "holdout-004",
+        "class": "wrong-api",
+        "description": "formatMoney uses invalid currency option in NumberFormat"
+      },
+      {
+        "id": "holdout-005",
+        "class": "async",
+        "description": "firstSpiceLabel missing await on fetchSpiceLabel"
+      }
+    ]
+  },
+  "metrics": [
+    {
+      "iteration": 0,
+      "playbook_version": "v0",
+      "model_checkpoint": "base",
+      "bugs_total": 25,
+      "bugs_passed": 10,
+      "pass_rate": 0.4,
+      "attempts_per_bug": 8,
+      "total_llm_calls": 139,
+      "gpu_hours_consumed": 0.0
+    },
+    {
+      "iteration": 1,
+      "playbook_version": "v1",
+      "model_checkpoint": "base",
+      "bugs_total": 25,
+      "bugs_passed": 10,
+      "pass_rate": 0.4,
+      "attempts_per_bug": 8,
+      "total_llm_calls": 142,
+      "gpu_hours_consumed": 0.0
+    },
+    {
+      "iteration": 2,
+      "playbook_version": "v2",
+      "model_checkpoint": "base",
+      "bugs_total": 25,
+      "bugs_passed": 9,
+      "pass_rate": 0.36,
+      "attempts_per_bug": 8,
+      "total_llm_calls": 154,
+      "gpu_hours_consumed": 0.0
+    },
+    {
+      "iteration": 3,
+      "playbook_version": "v3",
+      "model_checkpoint": "base",
+      "bugs_total": 25,
+      "bugs_passed": 12,
+      "pass_rate": 0.48,
+      "attempts_per_bug": 8,
+      "total_llm_calls": 133,
+      "gpu_hours_consumed": 0.0
+    }
+  ],
+  "holdout": {
+    "eval": "holdout",
+    "iteration": 3,
+    "playbook_version": "v3",
+    "model_checkpoint": "base",
+    "bugs_total": 5,
+    "bugs_passed": 3,
+    "pass_rate": 0.6,
+    "attempts_per_bug": 8,
+    "total_llm_calls": 28
+  },
+  "annotations": {
+    "0": "Baseline run with the seed playbook v0.",
+    "1": "Playbook v1 was a dry-run plumbing validation of the reflection pipeline.",
+    "2": "The dip is committed as measured \u2014 the curve is never smoothed.",
+    "3": "Playbook v3 came from Fireworks reflection on sandbox-verified wins and failures.",
+    "holdout": "Five unseen bugs, evaluated once with the final playbook \u2014 never used for training."
+  },
+  "playbooks": [
+    {
+      "version": "v0",
+      "summary": "This is the iteration-0 playbook injected verbatim into the Creator's system",
+      "body": "# Creator Strategy Playbook \u2014 v0 (baseline, hand-written)\n\nThis is the iteration-0 playbook injected verbatim into the Creator's system\nprompt (SOW section 7, Level 1). It is intentionally general. The reflection\nstep (`creator/reflection.py`, Fireworks) rewrites it into `v1`, `v2`, ... using\nstrategies mined from the Creator's own verified wins \u2014 that rewrite is the\nLevel 1 self-improvement signal, not this file.\n\n## Global rules\n\n- Change the fewest lines that fix the root cause. Never refactor unrelated code.\n- Output a unified diff that `git apply -p1` accepts: keep `a/` and `b/` path\n  prefixes, correct `@@` hunk headers, and unchanged context lines.\n- Fix only the file you were given. Do not invent new files or imports.\n- One defect per attempt. If unsure between two edits, pick the smaller one.\n\n## Per-bug-class tactics (seed heuristics)\n\n- **syntax**: scan for the unbalanced token \u2014 missing `>` on a JSX close, an\n  unclosed brace/paren, or an unterminated template literal. The fix is almost\n  always a single character or single line.\n- **off-by-one**: check loop bounds and slice indices. `<=` vs `<`, `i+1`,\n  `length` vs `length-1`, and reduce initial values are the usual culprits.\n- **null-handling**: add the missing guard \u2014 optional chaining (`?.`), a default\n  (`?? fallback`), or an early return for empty/nullish input.\n- **wrong-api**: verify the exact API contract (e.g. `Intl.NumberFormat`\n  expects major units, `formatToParts` vs `format`, correct part `type`).\n- **async**: add the missing `await`, ensure the enclosing function is `async`,\n  and do not swallow rejected promises.\n\n## Output discipline\n\nRespond with strict JSON only: `root_cause`, `plan`, `reasoning` (one line),\n`diff`. No prose, no markdown fences around the object.\n",
+      "chars": 1776
+    },
+    {
+      "version": "v1",
+      "summary": "> Dry-run: 11 wins / 183 failures. Fireworks was not called; this is the current playbook plus mined few-shot examples so the pipeline is exercisable end-to-end.",
+      "body": "# Creator Strategy Playbook \u2014 v1 (reflection dry-run from iteration 0)\n\n> Dry-run: 11 wins / 183 failures. Fireworks was not called; this is the current playbook plus mined few-shot examples so the pipeline is exercisable end-to-end.\n\n# Creator Strategy Playbook \u2014 v0 (baseline, hand-written)\n\nThis is the iteration-0 playbook injected verbatim into the Creator's system\nprompt (SOW section 7, Level 1). It is intentionally general. The reflection\nstep (`creator/reflection.py`, Fireworks) rewrites it into `v1`, `v2`, ... using\nstrategies mined from the Creator's own verified wins \u2014 that rewrite is the\nLevel 1 self-improvement signal, not this file.\n\n## Global rules\n\n- Change the fewest lines that fix the root cause. Never refactor unrelated code.\n- Output a unified diff that `git apply -p1` accepts: keep `a/` and `b/` path\n  prefixes, correct `@@` hunk headers, and unchanged context lines.\n- Fix only the file you were given. Do not invent new files or imports.\n- One defect per attempt. If unsure between two edits, pick the smaller one.\n\n## Per-bug-class tactics (seed heuristics)\n\n- **syntax**: scan for the unbalanced token \u2014 missing `>` on a JSX close, an\n  unclosed brace/paren, or an unterminated template literal. The fix is almost\n  always a single character or single line.\n- **off-by-one**: check loop bounds and slice indices. `<=` vs `<`, `i+1`,\n  `length` vs `length-1`, and reduce initial values are the usual culprits.\n- **null-handling**: add the missing guard \u2014 optional chaining (`?.`), a default\n  (`?? fallback`), or an early return for empty/nullish input.\n- **wrong-api**: verify the exact API contract (e.g. `Intl.NumberFormat`\n  expects major units, `formatToParts` vs `format`, correct part `type`).\n- **async**: add the missing `await`, ensure the enclosing function is `async`,\n  and do not swallow rejected promises.\n\n## Output discipline\n\nRespond with strict JSON only: `root_cause`, `plan`, `reasoning` (one line),\n`diff`. No prose, no markdown fences around the object.\n\n## Few-shot examples (mined from verified wins)\n\n### win: api-001 [wrong-api]\nreasoning: Dividing integer cents by 100 ensures they are formatted correctly as USD strings.\ndiff:\n```diff\n--- a/lib/currency.js\n+++ b/lib/currency.js\n@@ -9,7 +9,7 @@\n   if (cents == null) {\n     return usdFormatter.format(0);\n   }\n-  return usdFormatter.format(cents);\n+  return usdFormatter.format(cents / 100);\n }\n \n /** Compact display without currency symbol (digits only). */\n```\n\n### win: async-001 [async]\nreasoning: Async functions should await their asynchronous operations.\ndiff:\n```diff\n--- a/lib/asyncCart.js\n+++ b/lib/asyncCart.js\n@@ -17,7 +17,7 @@\n   const totals = Promise.all(\n     lines.map(async (line) => line.total),\n   );\n-  return totals.reduce((acc, value) => acc + value, 0);\n+  return (await totals).reduce((acc, value) => acc + value, 0);\n }\n \n /** Return true when every line has a known spice label. */\n```\n\n### win: async-002 [async]\nreasoning: Fixes the async issue by ensuring all checks complete before validation.\ndiff:\n```diff\n--- a/lib/asyncCart.js\n+++ b/lib/asyncCart.js\n@@ -27,7 +27,7 @@\n     return fetchSpiceLabel(key);\n   });\n   const results = Promise.all(checks);\n-  return results.every((label) => label !== \"Unknown\");\n+  return (await results).every((label) => label !== \"Unknown\");\n }\n \n /** First spice label for a cart, or null when empty. */\n```\n",
+      "chars": 3387
+    },
+    {
+      "version": "v2",
+      "summary": "1. **Copy context lines verbatim from the source file.** Do not retype, re-indent, or paraphrase them. A single trailing-space mismatch causes `patch does not apply`.",
+      "body": "# Creator Strategy Playbook \u2014 v2\n\n## Global rules\n\n1. **Copy context lines verbatim from the source file.** Do not retype, re-indent, or paraphrase them. A single trailing-space mismatch causes `patch does not apply`.\n2. **Count hunk lines precisely.** The `@@` header must show exact old/new line counts. Count removed lines for the first number, added lines for the second, and verify context line counts on both sides.\n3. **One hunk, one fix.** Keep the diff to the smallest possible change. If the fix touches two non-adjacent lines, use two hunks with correct intermediate context.\n4. **Output strict JSON only.** No markdown fences around the JSON object. No prose before or after. The keys are `root_cause`, `plan`, `reasoning`, `diff`. The `diff` value is a raw unified-diff string with `--- a/` and `+++ b/` headers.\n5. **Never invent imports, files, or helper functions.** Fix only the file given.\n6. **Verify the fix is syntactically valid** before outputting. If you add `await`, confirm the enclosing function is `async`. If you close a JSX tag, confirm the result parses.\n\n## What failed and why\n\n### diff_apply failures (dominant: ~60% of sampled failures)\n**Evidence:** `patch does not apply`, `corrupt patch at line N` across all bug classes \u2014 async-002, null-001, offbyone-002, syntax-001, api-001, api-002. The model generates diffs whose context lines, whitespace, or hunk-header line counts do not match the actual source. Even when the *fix logic* is correct, the patch is rejected.\n\n**Root cause:** Context lines are retyped from memory rather than copied verbatim. Hunk `@@` line counts are guessed. Leading spaces vs tabs are swapped.\n\n### build failures (~20%)\n**Evidence:** `build failed` for syntax-001, syntax-002, offbyone-001, offbyone-003, null-001. The applied patch introduces a new syntax error or the fix itself is malformed (e.g., adding `>` in the wrong place, breaking JSX structure).\n\n**Root cause:** The fix resolves one syntax issue but creates another, or the edit produces invalid JavaScript/JSX.\n\n### tests failures (~15%)\n**Evidence:** Tests fail for async-002, async-004, null-001, offbyone-001, api-001. The patch applies and builds, but the logic is still wrong \u2014 e.g., `await` added to the wrong expression, off-by-one fix overshoots, or the API fix doesn't match test expectations.\n\n**Root cause:** The model identifies the bug class but applies the fix to the wrong line or with the wrong operator.\n\n### JSONDecodeError (~5%)\n**Evidence:** `creator failed: JSONDecodeError` for api-001. The model wraps JSON in markdown fences or includes trailing prose.\n\n**Root cause:** Output discipline not followed; extra text outside the JSON object.\n\n## Per-bug-class tactics\n\n### syntax\n1. Read the file and find the exact unbalanced token \u2014 missing `>` on a JSX close tag, unclosed brace, or unterminated string literal.\n2. Add only the missing character(s). Do not reformat surrounding lines.\n3. After writing the fix, mentally parse the resulting JSX/JS to confirm it is valid.\n4. **Copy the two lines above and below the edit point verbatim as context.**\n\n### off-by-one\n1. Identify the exact expression with the wrong bound \u2014 `+ 1` that should be absent, `<` that should be `<=`, or a slice end that includes one extra element.\n2. Change only the operator or the offset. Do not rewrite the entire function.\n3. Verify the fix with a concrete example: if `pageSlice(items, 0, 5)` should return 5 items, confirm `end = start + pageSize` yields exactly that.\n\n### null-handling\n1. Find the property access that throws on `null`/`undefined`.\n2. Add the smallest guard: optional chaining `?.` is preferred when the access chain is the only change needed. Use `?? fallback` when a default is required. Use an early return only if the function must short-circuit.\n3. Do not add type checks or logging. One operator change is usually sufficient.\n\n### wrong-api\n1. Read the API contract carefully \u2014 does `Intl.NumberFormat.format` expect major units or minor units? Does `formatToParts` return `fraction` or `decimal`?\n2. Make the single conversion or method swap. For currency, if input is integer cents, divide by 100 before formatting.\n3. Check the test expectations to confirm the output format matches.\n\n### async\n1. First check the tested function for a missing `await` on a Promise-returning expression.\n2. Confirm the enclosing function is already `async`. If not, add `async` to the function declaration \u2014 this is a second line change and is acceptable.\n3. Place `await` directly before the Promise expression (`Promise.all(...)`, `fetch(...)`, etc.), not before a variable that already holds a resolved value.\n4. Do not wrap in `try/catch` unless the test expects error handling.\n\n## Few-shot examples (verified wins)\n\n### win: syntax-001 [syntax]\nreasoning: Fixing the unbalanced JSX close tag resolves the syntax error.\ndiff:\n```diff\n--- a/src/App.jsx\n+++ b/src/App.jsx\n@@ -26,5 +26,5 @@\n       </ul>\n       <p className=\"total\">Total: {formatCents(grandTotal)}</p>\n",
+      "chars": 5016
+    },
+    {
+      "version": "v3",
+      "summary": "1. **Copy context lines character-for-character from the source.** Open the file, locate the exact lines, and transcribe them with identical indentation, trailing spaces, and line endings. A single mismatched space or tab causes `patch does not apply`. This is the #1 failure mode",
+      "body": "# Creator Strategy Playbook \u2014 v3\n\n## Global rules\n\n1. **Copy context lines character-for-character from the source.** Open the file, locate the exact lines, and transcribe them with identical indentation, trailing spaces, and line endings. A single mismatched space or tab causes `patch does not apply`. This is the #1 failure mode \u2014 treat it as the highest priority.\n2. **Compute hunk header line counts arithmetically.** Count context + removed lines for the old count; context + added lines for the new count. Do not guess. If the hunk has 3 context, 1 removed, 1 added, the header is `@@ -X,4 +Y,4 @@`.\n3. **Use exactly 3 lines of context: one above, the changed line(s), one below.** More context increases the chance of a transcription error. Fewer risks ambiguity. If the line above or below is blank, include it \u2014 blank lines are context too.\n4. **One hunk, one fix.** Never touch lines unrelated to the bug. If the fix requires two non-adjacent edits, use two hunks with correct intermediate context and accurate cumulative line counts.\n5. **Output strict JSON only.** No markdown fences around the JSON. No prose before or after. Keys: `root_cause`, `plan`, `reasoning`, `diff`. The `diff` value is a raw unified-diff string starting with `--- a/` and `+++ b/`.\n6. **Never invent imports, files, or helper functions.** Fix only the file given.\n7. **Before outputting, re-read the entire function containing your edit and mentally parse it.** Confirm the result is syntactically valid JavaScript/JSX. This catches build failures before they happen.\n8. **Read the test expectations before finalizing the fix.** Identify what the test asserts and confirm your fix produces that exact output. This catches logic errors before they happen.\n\n## What failed and why\n\n### diff_apply failures (dominant: ~55% of sampled failures)\n**Evidence:** `patch does not apply`, `corrupt patch at line N` across null-001, offbyone-002, syntax-001, api-002, offbyone-003. The fix logic is often correct but the patch is rejected because context lines don't match the source \u2014 wrong whitespace, wrong line counts in the `@@` header, or retyped lines with subtle differences.\n\n**Root cause:** Context lines are reconstructed from memory rather than copied verbatim. Hunk line counts are guessed instead of counted. This is the single biggest blocker.\n\n### build failures (~20%)\n**Evidence:** `build failed` for syntax-002 (twice), null-004 (twice). The applied patch introduces a new syntax error or the edit produces invalid code \u2014 e.g., fixing one JSX tag but breaking another, or changing a value reference incorrectly.\n\n**Root cause:** The model fixes the identified bug without re-parsing the surrounding code. The edit resolves one issue but creates another in the same function.\n\n### tests failures (~20%)\n**Evidence:** Tests fail for async-002 (twice), async-004, null-001 (twice), offbyone-002 (three times), api-001, api-002. The patch applies and builds but the logic is still wrong \u2014 `await` added to the wrong expression, off-by-one fix overshoots or undershoots, null guard doesn't match test expectations, or API extraction returns the wrong part.\n\n**Root cause:** The model identifies the bug class but doesn't verify the fix against test expectations. It applies a plausible fix without confirming the exact output the test requires.\n\n### JSONDecodeError (~5%)\n**Evidence:** `JSONDecodeError` for api-001. The model wraps JSON in markdown fences or includes trailing prose.\n\n**Root cause:** Output discipline broken; extra text outside the JSON object.\n\n## Per-bug-class tactics\n\n### syntax\n1. Read the file and find the exact unbalanced token \u2014 missing `>` on a JSX close tag, unclosed brace, unterminated string.\n2. Add only the missing character(s). Do not reformat or touch any other line.\n3. After writing the fix, mentally parse the entire JSX block from the opening tag to the closing tag to confirm balance.\n4. Copy the line above and below the edit point verbatim as context \u2014 check for tabs vs spaces.\n\n### off-by-one\n1. Identify the exact expression with the wrong bound \u2014 a `+ 1` that should be absent, a `<` that should be `<=`, or a slice end that includes/excludes one extra element.\n2. Change only the operator or the offset constant. Do not rewrite the function.\n3. **Plug in the test's input values and trace the arithmetic by hand.** If `pageSlice(items, 0, 5)` should return 5 items, compute `start`, `end`, and `slice(start, end)` manually. Confirm the result count matches the test expectation exactly.\n4. If the fix still fails tests, you likely fixed the wrong bound \u2014 re-read the test to see which input case fails.\n\n### null-handling\n1. Find the property access that throws on `null`/`undefined`.\n2. **Read the test to see what it expects when the value is null** \u2014 does it expect `undefined`, a fallback string, `0`, or a skipped entry? Match that exactly.\n3. Add the smallest guard: optional chaining `?.` when the access chain is the only change. Use `?? fallback` when a default is required. Use an early return only if the test expects short-circuiting.\n4. Do not add type checks, logging, or try/catch.\n\n### wrong-api\n1. Read the API contract carefully \u2014 does `Intl.NumberFormat.format` expect major units or minor units? Does `formatToParts` return `fraction` or `decimal`?\n",
+      "chars": 5311
+    }
+  ],
+  "summary": {
+    "baseline_pass_rate": 0.4,
+    "final_pass_rate": 0.48,
+    "holdout_pass_rate": 0.6,
+    "iterations": 4
+  }
+}

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Malatang — Self-Improvement Replay</title>
+    <meta
+      name="description"
+      content="Replay Malatang's measured self-improvement curve: pass rate by iteration on a frozen bug benchmark, sandbox-verified."
+    />
+    <meta property="og:title" content="Malatang — Self-Improvement Replay" />
+    <meta
+      property="og:description"
+      content="A bug-fixing agent that rewrites its own playbook between runs. Training 40% → 48%, hold-out 60% — every pass verified by build + tests in a sandbox."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0d1017" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍜</text></svg>"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero-text">
+          <p class="eyebrow">AMD Hackathon · Self-improving harness</p>
+          <h1>Malatang Pipeline</h1>
+          <p class="subtitle">
+            Replay the measured improvement curve — pass rate by iteration on a
+            frozen bug benchmark, every pass verified by build&nbsp;+&nbsp;tests
+            in a sandbox.
+          </p>
+        </div>
+        <div class="hero-badge status-pill" id="evidence-pill">Loading evidence…</div>
+      </header>
+
+      <section class="summary-strip" id="summary-strip">
+        <div class="summary-tile">
+          <p class="label">Baseline</p>
+          <p class="value" id="sum-baseline">—</p>
+          <p class="hint">iteration 0 · playbook v0</p>
+        </div>
+        <div class="summary-arrow" aria-hidden="true">→</div>
+        <div class="summary-tile">
+          <p class="label">Final (training)</p>
+          <p class="value accent" id="sum-final">—</p>
+          <p class="hint">iteration 3 · playbook v3</p>
+        </div>
+        <div class="summary-arrow" aria-hidden="true">→</div>
+        <div class="summary-tile">
+          <p class="label">Hold-out</p>
+          <p class="value good" id="sum-holdout">—</p>
+          <p class="hint">never entered training</p>
+        </div>
+      </section>
+
+      <section class="card replay-controls">
+        <div class="card-head">
+          <h2>Replay iterations</h2>
+          <span class="badge neutral" id="replay-status">ready</span>
+        </div>
+        <div class="controls-row">
+          <button class="primary-btn" id="play-btn" type="button">▶ Play</button>
+          <button class="ghost-btn" id="step-btn" type="button">Step ▸</button>
+          <button class="ghost-btn" id="reset-btn" type="button">↺ Reset</button>
+          <label class="speed">
+            Speed
+            <select id="speed-select">
+              <option value="2400">1×</option>
+              <option value="1400" selected>1.75×</option>
+              <option value="700">3.5×</option>
+            </select>
+          </label>
+          <span class="muted kbd-hint">Space play · → step · ← back · R reset</span>
+        </div>
+        <div class="scrubber">
+          <input id="scrubber" type="range" min="0" max="4" step="1" value="0" />
+          <div class="scrub-ticks" id="scrub-ticks"></div>
+        </div>
+        <p class="run-message muted" id="replay-message">
+          Press Play to watch the harness improve across iterations, or Step
+          through one at a time.
+        </p>
+        <div class="final-banner" id="final-banner">
+          <span class="final-icon">🏁</span>
+          <div>
+            <h3>Self-improvement demonstrated</h3>
+            <p id="final-text"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid two-up">
+        <article class="card highlight" id="active-card">
+          <div class="card-head">
+            <h2>Current iteration</h2>
+            <span class="badge idle" id="active-status">idle</span>
+          </div>
+          <div class="active-meta">
+            <div>
+              <p class="label">Iteration</p>
+              <p class="value" id="active-iteration">—</p>
+            </div>
+            <div>
+              <p class="label">Playbook</p>
+              <p class="value" id="active-playbook">—</p>
+            </div>
+            <div>
+              <p class="label">Pass rate</p>
+              <p class="value accent" id="active-rate">—</p>
+            </div>
+          </div>
+          <div class="progress-block">
+            <div class="progress-labels">
+              <span>Bugs verified (build + tests)</span>
+              <span id="active-progress-text">0 / 25</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="active-progress-fill"></div>
+            </div>
+          </div>
+          <p class="muted" id="active-detail">Start the replay to see each iteration.</p>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Pass rate curve</h2>
+            <span class="muted" id="chart-note">revealed as you replay</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="pass-chart" width="560" height="280" aria-label="Pass rate by iteration"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Self-improvement loop</h2>
+          <span class="muted">what happens between the numbers</span>
+        </div>
+        <div class="loop-diagram" id="loop-diagram">
+          <div class="loop-stage" id="loop-run">
+            <span class="loop-num">1</span>
+            <h3>Run benchmark</h3>
+            <p>Creator proposes one patch per seeded bug</p>
+          </div>
+          <div class="loop-arrow" aria-hidden="true">→</div>
+          <div class="loop-stage" id="loop-verify">
+            <span class="loop-num">2</span>
+            <h3>Sandbox verdict</h3>
+            <p>build + tests decide pass/fail — no LLM judge</p>
+          </div>
+          <div class="loop-arrow" aria-hidden="true">→</div>
+          <div class="loop-stage" id="loop-reflect">
+            <span class="loop-num">3</span>
+            <h3>Reflect</h3>
+            <p>mine verified wins &amp; failures from trajectories</p>
+          </div>
+          <div class="loop-arrow" aria-hidden="true">→</div>
+          <div class="loop-stage" id="loop-rewrite">
+            <span class="loop-num">4</span>
+            <h3>Rewrite playbook</h3>
+            <p>vN → vN+1 — the self-modification</p>
+          </div>
+          <div class="loop-arrow loop-return" aria-hidden="true">↺</div>
+        </div>
+        <div class="pipeline" id="pipeline-steps"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Operational definition of “self-improving”</h2>
+          <span class="badge neutral" id="conditions-score">2 / 4</span>
+        </div>
+        <div class="conditions">
+          <div class="condition met" id="cond-1">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Same frozen benchmark</h3>
+              <p class="cond-detail">every iteration runs the identical 25 seeded bugs</p>
+            </div>
+          </div>
+          <div class="condition met" id="cond-2">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Automatic verification</h3>
+              <p class="cond-detail">pass = build + tests green in a sandbox — no human judging, no LLM vibes</p>
+            </div>
+          </div>
+          <div class="condition" id="cond-3">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Measured improvement</h3>
+              <p class="cond-detail">replay the iterations to reveal the curve…</p>
+            </div>
+          </div>
+          <div class="condition" id="cond-4">
+            <span class="cond-check">✓</span>
+            <div>
+              <h3>Self-modification between runs</h3>
+              <p class="cond-detail">waiting for the first reflection…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid two-up">
+        <article class="card">
+          <div class="card-head">
+            <h2>Completed iterations</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Iter</th>
+                  <th>Playbook</th>
+                  <th>Passed</th>
+                  <th>Pass rate</th>
+                  <th>LLM calls</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-body">
+                <tr><td colspan="5" class="muted">Replay to populate.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Hold-out eval</h2>
+            <span class="badge neutral" id="holdout-badge">not run</span>
+          </div>
+          <div class="holdout-panel" id="holdout-panel">
+            <p class="muted">Revealed once at the end with the final playbook.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid two-up">
+        <article class="card">
+          <div class="card-head">
+            <h2>Frozen benchmark</h2>
+            <span class="muted" id="bench-note"></span>
+          </div>
+          <div class="bench-classes" id="bench-classes"></div>
+          <div class="bug-grid" id="bug-grid"></div>
+          <p class="muted footnote" id="bench-foot"></p>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Playbook evolution</h2>
+            <span class="muted">Level-1 self-modification</span>
+          </div>
+          <div class="playbook-chips" id="playbook-chips"></div>
+          <div class="pb-toolbar">
+            <div class="pb-mode">
+              <button class="mode-btn active" type="button" data-mode="diff" id="mode-diff">Diff vs prev</button>
+              <button class="mode-btn" type="button" data-mode="full" id="mode-full">Full text</button>
+            </div>
+            <span class="muted" id="pb-stats"></span>
+          </div>
+          <pre class="playbook-body" id="playbook-body">Select a playbook version.</pre>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span id="footer-note">Static evidence replay · no live server</span>
+        <span>
+          Want to run <em>your own</em> iterations? Clone the repo and run
+          <code>python -m scripts.dashboard_server</code> for the live local dashboard.
+        </span>
+      </footer>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
