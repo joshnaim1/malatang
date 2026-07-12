@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Malatang Pipeline Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">AMD Hackathon · Self-improving harness</p>
+          <h1>Malatang Pipeline</h1>
+          <p class="subtitle">
+            Live pass-rate and iteration progress from
+            <code>results/metrics.jsonl</code> and <code>trajectories/iterN/</code>.
+          </p>
+        </div>
+        <div class="status-pill" id="connection-status">Connecting…</div>
+      </header>
+
+      <section class="card run-controls">
+        <div class="card-head">
+          <h2>Run iteration</h2>
+          <span class="badge neutral" id="run-job-status">idle</span>
+        </div>
+        <form class="run-form" id="run-form">
+          <label>
+            Start iteration
+            <input id="run-start-iteration" type="number" min="0" value="0" />
+          </label>
+          <label>
+            Iterations
+            <input id="run-iterations" type="number" min="1" value="1" />
+          </label>
+          <label>
+            Creator
+            <select id="run-creator">
+              <option value="live" selected>live (vLLM)</option>
+              <option value="mock">mock (no GPU)</option>
+              <option value="fake">fake (stub)</option>
+            </select>
+          </label>
+          <label class="checkbox">
+            <input id="run-no-chart" type="checkbox" checked />
+            Skip chart regen
+          </label>
+          <button class="primary-btn" id="run-button" type="submit">Run iteration</button>
+        </form>
+        <p class="run-message muted" id="run-message">Launch benchmark from the dashboard.</p>
+        <pre class="run-log" id="run-log"></pre>
+      </section>
+
+      <section class="grid two-up">
+        <article class="card highlight" id="active-card">
+          <div class="card-head">
+            <h2>Active iteration</h2>
+            <span class="badge" id="active-status">idle</span>
+          </div>
+          <div class="active-meta">
+            <div>
+              <p class="label">Iteration</p>
+              <p class="value" id="active-iteration">—</p>
+            </div>
+            <div>
+              <p class="label">Playbook</p>
+              <p class="value" id="active-playbook">—</p>
+            </div>
+            <div>
+              <p class="label">Bugs passed</p>
+              <p class="value" id="active-passed">—</p>
+            </div>
+          </div>
+          <div class="progress-block">
+            <div class="progress-labels">
+              <span>Benchmark progress</span>
+              <span id="active-progress-text">0 / 25 bugs attempted</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="active-progress-fill"></div>
+            </div>
+          </div>
+          <p class="muted" id="active-detail">Waiting for runner activity…</p>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Pass rate curve</h2>
+            <span class="muted" id="chart-updated"></span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="pass-chart" width="520" height="260" aria-label="Pass rate by iteration"></canvas>
+          </div>
+          <img
+            id="chart-fallback"
+            class="chart-fallback hidden"
+            alt="Pass rate chart from results/pass_rate.png"
+          />
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Pipeline steps</h2>
+          <span class="muted">Train → reflect → next iteration</span>
+        </div>
+        <div class="pipeline" id="pipeline-steps"></div>
+      </section>
+
+      <section class="grid two-up">
+        <article class="card">
+          <div class="card-head">
+            <h2>Completed iterations</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Iter</th>
+                  <th>Playbook</th>
+                  <th>Passed</th>
+                  <th>Pass rate</th>
+                  <th>LLM calls</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Hold-out eval</h2>
+            <span class="badge neutral" id="holdout-badge">not run</span>
+          </div>
+          <div class="holdout-panel" id="holdout-panel">
+            <p class="muted">Run once at the end with playbook v3.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Recent attempts</h2>
+          <span class="muted" id="attempts-count">0 events</span>
+        </div>
+        <div class="attempt-feed" id="attempt-feed"></div>
+      </section>
+
+      <footer class="footer">
+        <span id="last-updated">Last updated —</span>
+        <span>Polling every 2s · <code>python -m scripts.dashboard_server</code></span>
+      </footer>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
